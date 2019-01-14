@@ -23,6 +23,8 @@ To write a new post:
         - run `pelican content -s publishconf.py`
         - commit to dev branch
         - run `ghp-import output -b master`
+        - push dev
+        - push master
 
 
 TODO
