@@ -29,5 +29,8 @@ TODO
 ====
 
 - automate deploy
+- add diqus
+- improve theme
+
 
 
