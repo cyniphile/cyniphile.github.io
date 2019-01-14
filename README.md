@@ -14,6 +14,20 @@ To write a new post:
             Tags: python firsts
             author: Vik Paruchuri
             Summary: My first post, read it to find out.
-    - run `pelican content`
+    - to preview locally:
+        - run `pelican content`
+        - Switch to the output directory.
+        - Run python -m pelican.server.
+        - Visit localhost:8000 in your browser to preview the blog.
+    - to deploy:
+        - run `pelican content -s publishconf.py`
+        - commit to dev branch
+        - run `ghp-import output -b master`
+
+
+TODO
+====
+
+- automate deploy
 
 
