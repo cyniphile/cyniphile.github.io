@@ -1,96 +1,57 @@
 html, body {
-		  height: 100%;
-		}
+    height: 100%;
+}
 
-		ul{
-			padding: 0;
-		}
-		#block{ 
-			float:left; 
-			width:100%; 
-			position: relative; 
-		}
+ul{
+    padding: 0;
+}
 
-		#content{
-		  height: 100%;
-		  min-height: 100%;
-		}
+#block{ 
+    width:80vw; 
+    height:80vh; 
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    -webkit-transform: translate(-50%, -50%);
+    transform: translate(-50%, -50%);
+}
 
-		#big{
-		  max-width: 100%;
-		  display: inline-block;
-		}
+#content{
+  height: 100%;
+  min-height: 100%;
+}
 
-		#small{
-			display: none;
-		}
+#big{
+  max-width: 100%;
+  height: auto;
+  max-height: 100%;
+  display: inline-block;
+}
 
-		#resume_link{
-		  	position: absolute; 
-		  	top: 76%; 
-		  	left: 7%; 
-		  	width: 10%; 
-		  	height: 5%;
-		}
-
-		#movies_link{
-			position: absolute;
-			top: 76%; 
-			left: 20%; 
-			width: 10%; 
-			height: 5%;
-		}
-
-		#movie_poster{
-			height: 209px;
-			width: 140px;
-		}
-
-	    .md-middle {
-	        /*display:	table-cell;*/
-	        margin-top: 3%;
-	        /*float:none;*/
-	    }
-
-	   	small h4{
-			opacity: 0;
-	   		max-height: 0;
-	   		transition: max-height .4s;
-	   		-webkit-transform: translate3d(0%, 0, 0);
-  			-webkit-transition: max-height.4s;
-  			-moz-transition: max-height .4s;
-  			/*overflow: hidden;*/
-	   	}
-
-		.open{
-	    	max-height: 200px;
-	     	opacity: 1;	
-	    }
-
-	    div{}
-
-	    .review{
-	    	color: #c33d3d;
-	    	margin-top: 0;
-	    	text-align: center;
-	    	position: relative;
-	    }
-
-	    .review span{
-	    	margin: auto;
-	    	position: relative;
-	    }
+#small{
+    display: none;
+}
 
 
-	    .display{
-	    	display: inline-block;
-	    }
+display{
+    display: inline-block;
+}
 
+.links{
+position: relative;
+    bottom: 20px;
+    display: flex;
+    justify-content: flex-end
+    float: left;
+}
+
+a:link, a:visited {
+    font-size: 40px;
+    color: #414040;    
+    padding: 10px;
+    text-decoration: none;
+}
 	    
-
-
-		
-
 @media (max-width: 450px) {
 
 	#big{
@@ -99,128 +60,10 @@ html, body {
 
 	#small{
 		max-width: 100%;
+        height: auto;
+        max-height: 100%;
 		display: inline-block;
 	}
-
-	#resume_link{
-	  	position: absolute; 
-	  	top: 61%; 
-	  	left: 49%; 
-	  	width: 38%; 
-	  	height: 6%;
-	}
-
-	#movies_link{
-		position: absolute;
-		top: 74%; 
-		left: 49%; 
-		width: 38%; 
-		height: 6%;
-	}
-
-	#movie_poster{
-			height: 180px;
-			width: 121px;
-		}
-  
 }
 
 
-.hi-icon {
-	display: inline-block;
-	font-size: 0px;
-	cursor: pointer;
-	margin: 15px 30px;
-	width: 90px;
-	height: 90px;
-	border-radius: 50%;
-	text-align: center;
-	position: relative;
-	z-index: 1;
-	color: #000;
-}
-
-.hi-icon:after {
-	pointer-events: none;
-	position: absolute;
-	width: 100%;
-	height: 100%;
-	border-radius: 50%;
-	content: "\002b";
-	-webkit-box-sizing: content-box; 
-	-moz-box-sizing: content-box; 
-	box-sizing: content-box;
-}
-
-.hi-icon:before {
-	speak: none;
-	font-size: 48px;
-	line-height: 90px;
-	font-style: normal;
-	font-weight: normal;
-	font-variant: normal;
-	text-transform: none;
-	display: block;
-	-webkit-font-smoothing: antialiased;
-}
-
-.hi-icon-effect-4 .hi-icon {
-	width: 92px;
-	height: 92px;
-	box-shadow: 0 0 0 4px rgba(0,0,0,1);
-}
-
-.hi-icon-effect-4 .hi-icon:before {
-	line-height: 92px;
-}
-
-.hi-icon-effect-4 .hi-icon:after {
-	top: -4px;
-	left: -4px;
-	padding: 0;
-	z-index: 10;
-	border: 4px dashed #000;
-}
-
-.hi-icon-effect-4 .hi-icon:hover {
-	box-shadow: 0 0 0 0 rgba(0,0,0,0);
-    color: #000;
-}
-
-/* Effect 4b */
-.hi-icon-effect-4b .hi-icon:hover {
-	-webkit-transition: box-shadow 0.2s;
-	-moz-transition: box-shadow 0.2s;
-	transition: box-shadow 0.2s;
-}
-
-.hi-icon-effect-4b .hi-icon:hover:after {
-	-webkit-animation: spinAround 9s linear infinite;
-	-moz-animation: spinAround 9s linear infinite;
-	animation: spinAround 9s linear infinite;
-}
-
-@-webkit-keyframes spinAround {
-	from {
-		-webkit-transform: rotate(0deg)
-	}
-	to {
-		-webkit-transform: rotate(360deg);
-	}
-}
-@-moz-keyframes spinAround {
-	from {
-		-moz-transform: rotate(0deg)
-	}
-	to {
-		-moz-transform: rotate(360deg);
-	}
-}
-@keyframes spinAround {
-	from {
-		transform: rotate(0deg)
-	}
-	to {
-		transform: rotate(360deg);
-	}
-}
