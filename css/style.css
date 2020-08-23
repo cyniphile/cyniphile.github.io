@@ -38,7 +38,7 @@ display{
 }
 
 .links{
-position: relative;
+    position: relative;
     bottom: 20px;
     display: flex;
     justify-content: flex-end
@@ -46,6 +46,7 @@ position: relative;
 }
 
 a:link, a:visited {
+    line-height: unset;
     font-size: 40px;
     color: #414040;    
     padding: 10px;
