@@ -46,7 +46,7 @@ display{
 }
 
 a:link, a:visited {
-    line-height: unset;
+    line-height: 1px;
     font-size: 40px;
     color: #414040;    
     padding: 10px;
