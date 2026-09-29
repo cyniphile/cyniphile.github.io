@@ -1,0 +1,17 @@
+---
+title: "Subscribe"
+toc: false
+---
+
+Get new posts by email:
+
+```{=html}
+<form action="https://lukeschiefelbein.us7.list-manage.com/subscribe/post?u=87bdb0aa63eaacd17f4e3ebd7&amp;id=b8799b10d7" method="post" target="_blank" class="d-flex gap-2 my-3" style="max-width: 32rem">
+  <input type="email" name="EMAIL" class="form-control" placeholder="email address" aria-label="Email address" required>
+  <!-- Mailchimp bot trap: real people do not fill in this field. -->
+  <div style="position: absolute; left: -5000px;" aria-hidden="true"><input type="text" name="b_87bdb0aa63eaacd17f4e3ebd7_b8799b10d7" tabindex="-1" value=""></div>
+  <button type="submit" class="btn btn-primary">Subscribe</button>
+</form>
+```
+
+Or follow the blog with the [RSS feed](../index.xml).

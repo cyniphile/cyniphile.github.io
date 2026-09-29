@@ -1,0 +1,41 @@
+project:
+  type: website
+  render:
+    - "**/*.qmd"
+
+website:
+  title: "Luke Schiefelbein"
+  site-url: https://www.lukeschiefelbein.com/blog
+  description: "Luke Schiefelbein writes about science, code and other things."
+  open-graph: true
+  twitter-card:
+    creator: "@dj_rump_roast"
+  search: true
+  navbar:
+    logo: images/logo-wobble.png
+    logo-alt: "Colored wavy lines"
+    logo-href: /
+    title: "Luke Schiefelbein"
+    right:
+      - text: Blog
+        href: index.qmd
+      - text: About
+        href: about/index.qmd
+      - text: Subscribe
+        href: subscribe/index.qmd
+      - icon: rss
+        href: index.xml
+        aria-label: RSS feed
+
+format:
+  html:
+    theme:
+      light: [cosmo, theme-light.scss]
+      dark: [darkly, theme-dark.scss]
+    html-math-method: katex
+    toc: true
+    code-fold: true
+    include-in-header: _includes/goatcounter.html
+
+execute:
+  freeze: auto

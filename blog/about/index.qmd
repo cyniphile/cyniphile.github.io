@@ -1,0 +1,31 @@
+---
+title: "About"
+image: ../images/bull.png
+about:
+  template: trestles
+  image-width: 10em
+  links:
+    - icon: twitter-x
+      text: Twitter
+      href: https://twitter.com/dj_rump_roast
+    - icon: linkedin
+      text: LinkedIn
+      href: https://www.linkedin.com/in/lucas-schiefelbein/
+    - icon: film
+      text: IMDb
+      href: https://www.imdb.com/user/ur27147194/
+    - icon: book
+      text: Goodreads
+      href: https://www.goodreads.com/user/show/30189655-luke-schiefelbein
+    - icon: music-note-beamed
+      text: SoundCloud
+      href: https://soundcloud.com/rump_roast
+    - icon: github
+      text: GitHub
+      href: https://github.com/cyniphile
+toc: false
+---
+
+I'm interested in a lot of things. I've written a [couple](https://writers.coverfly.com/profile/lukeschiefelbein) [movies](https://www.imdb.com/name/nm11624600/), [news articles](https://www.forbes.com/sites/lukeschiefelbein/), [electronic music](https://soundcloud.com/rump_roast), and [code](https://github.com/cyniphile) (usually for data science).
+
+This website is powered by [Quarto](https://quarto.org).
