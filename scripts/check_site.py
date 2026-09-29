@@ -89,20 +89,33 @@ def check_redirects(site_dir: Path, redirects: dict[str, str] = REDIRECTS) -> li
 def check_internal_links(site_dir: Path) -> list[str]:
     errors = []
     for page in html_pages(site_dir):
-        for _tag, attr, url in parse(page).links:
+        parser = parse(page)
+        # Skip redirect pages; check_redirects already validates their targets
+        if parser.refresh is not None:
+            continue
+        for _tag, attr, url in parser.links:
             if not is_external(url) and not resolve(site_dir, page, url).exists():
                 errors.append(f"{rel(page, site_dir)}: broken {attr} {url}")
     return errors
 
 
-def page_weight(site_dir: Path, page: Path) -> int:
+def page_weight(site_dir: Path, page: Path, is_post: bool = False) -> int:
     total = len(gzip.compress(page.read_bytes()))
+    counted_files = set()
     for tag, attr, url in parse(page).links:
         if is_external(url) or (tag, attr) not in {("script", "src"), ("link", "href")}:
             continue
         target = resolve(site_dir, page, url)
         if target.suffix in {".js", ".css"} and target.is_file():
             total += len(gzip.compress(target.read_bytes()))
+            counted_files.add(target)
+    # For post pages, also count data files (.js, .mjs, .json, .csv) in the post folder
+    if is_post:
+        post_dir = page.parent
+        data_suffixes = {".js", ".mjs", ".json", ".csv"}
+        for data_file in sorted(post_dir.iterdir()):
+            if data_file.is_file() and data_file.suffix in data_suffixes and data_file not in counted_files:
+                total += len(gzip.compress(data_file.read_bytes()))
     return total
 
 
@@ -113,7 +126,9 @@ def check_page_budgets(site_dir: Path, max_bytes: int = MAX_PAGE_BYTES) -> list[
         if not page.is_file():
             errors.append(f"{rel(page, site_dir)}: page is missing")
             continue
-        weight = page_weight(site_dir, page)
+        # is_post is True for pages like blog/post/index.html, False for blog/index.html
+        is_post = page.parent != blog
+        weight = page_weight(site_dir, page, is_post=is_post)
         if weight > max_bytes:
             errors.append(f"{rel(page, site_dir)}: {weight} bytes compressed (limit {max_bytes})")
     return errors

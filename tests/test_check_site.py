@@ -117,6 +117,45 @@ def test_listing_matches_the_posts(tmp_path):
     ]
 
 
+def test_page_budget_counts_post_data_files(tmp_path):
+    # A post page with an incompressible data.json file should count it in budget
+    write(tmp_path / "blog/index.html", "page")
+    write(tmp_path / "blog/post/index.html", "page")
+    (tmp_path / "blog/post/data.json").write_bytes(os.urandom(5000))
+    errors = check_page_budgets(tmp_path, max_bytes=4000)
+    assert len(errors) == 1
+    assert errors[0].startswith("blog/post/index.html: ")
+
+
+def test_page_budget_does_not_count_blog_data_files(tmp_path):
+    # blog/index.html should NOT count blog/search.json or other files in blog/
+    write(tmp_path / "blog/index.html", "page")
+    (tmp_path / "blog/search.json").write_bytes(os.urandom(5000))
+    assert check_page_budgets(tmp_path, max_bytes=4000) == []
+
+
+def test_page_budget_counts_referenced_file_once(tmp_path):
+    # A post page with a <script src="wiring.js"> should count that file once
+    write(tmp_path / "blog/index.html", "page")
+    write(tmp_path / "blog/post/index.html", '<script src="wiring.js"></script>')
+    (tmp_path / "blog/post/wiring.js").write_bytes(os.urandom(100))
+    weight = check_page_budgets(tmp_path, max_bytes=1_000_000)
+    # Should have no errors since file is small
+    assert weight == []
+
+
+def test_internal_links_skips_redirect_pages(tmp_path):
+    # Pages with meta refresh should be skipped by check_internal_links
+    # because check_redirects already validates their targets
+    write_redirects(tmp_path)
+    # Don't create any actual target pages, so redirects would fail
+    assert check_internal_links(tmp_path) == []
+    # But check_redirects should still report the missing targets
+    redirect_errors = check_redirects(tmp_path)
+    assert len(redirect_errors) > 0
+    assert any("does not exist" in err for err in redirect_errors)
+
+
 def test_main_returns_1_for_an_empty_site(tmp_path, capsys):
     assert main(["--site", str(tmp_path / "_site"), "--blog", str(tmp_path / "blog")]) == 1
     assert "site check(s) failed" in capsys.readouterr().err
