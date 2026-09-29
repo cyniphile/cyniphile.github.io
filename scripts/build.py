@@ -41,7 +41,8 @@ def copy_feed(site_dir: Path) -> None:
 def build(root: Path = ROOT) -> int:
     site = root / "_site"
     blog = root / "blog"
-    shutil.rmtree(site, ignore_errors=True)
+    if site.exists():
+        shutil.rmtree(site)
     run(["quarto", "render", "blog"], cwd=root)
     copy_tree(blog / "_site", site / "blog")
     for src, out in live_notebooks(blog, site):

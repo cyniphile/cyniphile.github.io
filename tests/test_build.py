@@ -87,3 +87,24 @@ def test_build_stops_when_a_command_fails(tmp_path, monkeypatch):
     with pytest.raises(subprocess.CalledProcessError):
         build.build(root)
     assert not (root / "_site/index.html").exists()
+
+
+def test_build_stops_when_site_delete_fails(tmp_path, monkeypatch):
+    root = fake_repo(tmp_path)
+    (root / "_site").mkdir()
+    calls = []
+
+    def fake_run(cmd, cwd):
+        calls.append(cmd[:2])
+
+    def failing_rmtree(path, ignore_errors=False):
+        if ignore_errors:
+            return  # Silently return when ignore_errors=True, like the real rmtree would
+        raise OSError("Permission denied")
+
+    monkeypatch.setattr(build, "run", fake_run)
+    monkeypatch.setattr(build.shutil, "rmtree", failing_rmtree)
+
+    with pytest.raises(OSError):
+        build.build(root)
+    assert calls == []  # No run calls should have been made
