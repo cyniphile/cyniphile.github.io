@@ -64,22 +64,24 @@ cyniphile.github.io/
 ├── site-root/                 # static files, copied as they are to /
 │   ├── index.html  css/  img/ # landing page, same look
 │   ├── 404.html               # random 404 page (section 8.5)
-│   ├── CNAME  googledd6e83b608092f4a.html  robots.txt  sitemap.xml
-│   └── marimo-blog/           # 2 redirect pages (section 4.2)
+│   └── CNAME  googledd6e83b608092f4a.html  robots.txt  sitemap.xml
 ├── blog/                      # Quarto project; it builds /blog/
 │   ├── _quarto.yml
 │   ├── index.qmd              # post list, RSS
 │   ├── about/index.qmd
 │   ├── subscribe/index.qmd
-│   ├── gaussian-processes/    # index.qmd, live.py (marimo notebook), images
+│   ├── gaussian-processes/    # index.qmd, gp_data.py, wiring.js, live.py (marimo notebook)
 │   ├── abortion/              # index.qmd, images
 │   ├── voter-fraud/           # index.qmd, images
 │   ├── biology-rust/          # index.qmd, images
 │   └── _freeze/               # stored outputs of Python chunks (committed)
 ├── design/                    # GIMP source files (.xcf); not published
-├── docs/superpowers/specs/    # this file; not published
+├── docs/superpowers/          # specs and plans; not published
+├── scripts/redirects.py       # the list of old URLs and their redirect pages (section 4.3)
 ├── scripts/build.py           # full build (section 6.3)
 ├── scripts/check_site.py      # automatic checks (section 7.1)
+├── scripts/migrate_fastpages.py  # one-time converter for the old posts (section 8.1)
+├── tests/                     # pytest tests for the scripts and gp_data.py
 ├── pyproject.toml, uv.lock    # Python for build time
 └── .github/workflows/publish.yml
 ```
@@ -101,9 +103,12 @@ cyniphile.github.io/
 
 ### 4.3 Redirect method
 
-GitHub Pages cannot do server redirects.
-- Redirects under `/blog/` use Quarto `aliases` in the front matter of the new page. Quarto makes a small HTML page at each old path. This page sends the reader to the new URL and gives search engines the new URL.
-- The two `/marimo-blog/` redirects are static HTML files in `site-root/marimo-blog/`, because they are outside the Quarto project.
+GitHub Pages cannot do server redirects. So `scripts/redirects.py` holds one list of old paths and new paths. The build writes a small HTML page at each old path. Each page has:
+- a `<meta http-equiv="refresh">` tag with the new path, which sends browsers to the new page
+- a `<link rel="canonical">` tag with the full new URL, which gives search engines the new URL
+- a normal link to the new page
+
+The checks in section 7.1 use the same list. (Quarto `aliases` are not used. Their pages redirect with JavaScript only, and they are in a different place from the checks.)
 
 ## 5. Posts and interactivity
 
@@ -145,8 +150,11 @@ Plot.plot({marks: fuzzy.pools[ell].slice(0, n).map(ys =>
 ### 5.4 GP post
 
 - Title, text and LaTeX come from `apps/Intro_to_Gaussian_Process_Regression.py` in `marimo-blog`.
-- All calculations use the numpy code of the notebook with `np.random.seed(42)`. In the post, numpy replaces scipy, so the build environment does not need scipy. (The export of the live notebook installs its own packages from the notebook header.)
+- `gp_data.py` does all calculations with numpy, with the same formulas as the notebook. In the post, numpy replaces scipy, so the build environment does not need scipy. (The export of the live notebook installs its own packages from the notebook header.)
+- Random numbers come from `np.random.default_rng` with fixed seeds. A sample is L·z, where L is the Cholesky factor of the covariance (plus 10⁻⁶ on the diagonal) and z is a standard-normal vector. All ℓ values use the same z, so the curves change smoothly when the reader moves an ℓ slider.
+- `wiring.js` holds the small JavaScript helpers (button counters, text parsing, the scalar formulas). Node's built-in test runner tests it.
 - The live notebook `live.py` is the current marimo notebook without changes.
+- Two text changes: "10,000 samples" becomes "5,000 samples" (the widget uses 5,000), and the sentence about "the ellipses in the upper right corner" points to the live notebook and to `gp_data.py`.
 
 | # | Widget in the notebook | New widget |
 |---|---|---|
@@ -154,9 +162,9 @@ Plot.plot({marks: fuzzy.pools[ell].slice(0, n).map(ys =>
 | 2 | Histogram with "Mean" (−5 to 5, step 0.1) and "Variance" (0.1 to 5, step 0.1) sliders | Python stores 5,000 standard-normal values z. The chart shows μ + σ·z with σ = √variance. (The notebook uses the slider value as σ, so its label is wrong. The new widget fixes this.) |
 | 3 | 2×2 covariance matrix and mean vector (step 0.1, minimum 0) | 5 number inputs with the same limits. Python stores 2,500 standard-normal pairs. The browser applies the 2×2 Cholesky formula. If the matrix is not positive semi-definite, the widget shows an error and only the gray reference cloud. |
 | 4 | 1-D, 2-D, 3-D samples: "New Sample", "Clear" | Python stores 50 samples for each. |
-| 5 | 50-D samples: "New Sample", "Connect Points", "Clear" | Python stores 50 samples. "Connect Points" changes the dots to lines with dots. |
+| 5 | 50-D samples: "New Sample", "Connect Points", "Clear" | Python stores 50 samples. "Connect Points" is a switch that changes the dots to lines with dots. |
 | 6 | ℓ slider (1 to 30, step 1, default 5) with the 50×50 RBF heatmap (shown two times in the post) | The browser calculates exp(−(xᵢ−xⱼ)²/(2ℓ²)) for each cell. Both heatmaps use the same slider. |
-| 7 | "Fuzzy" samples with the current ℓ: "New Sample", "Clear" | Python stores 50 samples for each ℓ from 1 to 30. |
+| 7 | "Fuzzy" samples with the current ℓ: "New Sample", "Clear" | Python stores 50 samples for each ℓ from 1 to 30. The samples on the chart follow the ℓ slider of widget 6. |
 | 8 | Samples at multiples of π; 50 samples at real values: "New Sample", "Clear" | Python stores 50 samples for each. |
 | 9 | Code editor (the reader edits Python) | A text box for the points (default `1.549, 2, 3, 4, 5, 6, 10`) and an ℓ input (default 1). The browser calculates the annotated RBF heatmap. A link opens the live notebook. |
 | 10 | ℓ slider (0.01 to 2.0, step 0.01, default 0.5) with samples and heatmap | The step changes to 0.05 (40 values from 0.05 to 2.0). Python stores 50 samples for each ℓ. The browser calculates the heatmap. "New Sample" adds a sample for the current ℓ, with ℓ in the legend. |
@@ -185,11 +193,12 @@ To see the full site: run `uv run scripts/build.py`, then `python -m http.server
 
 The same script runs on the laptop and in CI:
 1. Delete `_site/`.
-2. Run `quarto render blog`. The output goes to `_site/blog/`.
+2. Run `quarto render blog`. Quarto writes `blog/_site/`. Copy it to `_site/blog/`.
 3. For each `blog/*/live.py`: run `marimo export html-wasm --mode run --no-show-code --execute` to `_site/blog/<slug>/live/index.html`.
 4. Copy `site-root/` to `_site/`.
-5. Copy `_site/blog/index.xml` to `_site/blog/feed.xml`.
-6. Run `scripts/check_site.py`.
+5. Write the redirect pages from `scripts/redirects.py`. If a real page already exists at an old path, stop the build.
+6. Copy `_site/blog/index.xml` to `_site/blog/feed.xml`.
+7. Run `scripts/check_site.py`.
 
 ### 6.4 CI (`.github/workflows/publish.yml`)
 
@@ -212,6 +221,8 @@ The same script runs on the laptop and in CI:
 - No internal link or asset is missing (`/live/` folders are not included).
 - For each post, the HTML with its local scripts, styles and data is less than 1.5 MB compressed.
 - Each image in `blog/` is less than 300 KB.
+- The RSS feed contains all posts and no other pages. (The feed has the same items as the post list.)
+- Comments show on posts and on no other page.
 
 ### 7.2 Manual, before the cutover
 
@@ -243,11 +254,11 @@ With the phone settings from section 1.1:
 | Five Levels Of (Bioinformatics) Programming | 2021-12-01 | programming, rust, biology |
 | The First Blog Post You Should Read about Gaussian Processes (With Interactive Plots) | 2025-02-12 | statistics, machine learning, interactive |
 
-The GP post image for the post list and link previews is a PNG of the chart of 500 posterior samples. Python makes it one time, and the PNG is committed.
+The GP post image for the post list and link previews is a JPEG of the chart of 500 posterior samples. Python makes it one time, and the JPEG is committed.
 
 ### 8.2 About and Subscribe
 
-- About: the text of `_pages/about.md`. "powered by fastpages" changes to "powered by Quarto". The social links are text links, with Quarto icons where they exist.
+- About: the text of `_pages/about.md`. "powered by fastpages" changes to "powered by Quarto". The page uses the Quarto about template `trestles`, with the pixel-art bull from the favicon as its image. The social links use the template's link list, with Bootstrap icons.
 - Subscribe: the same Mailchimp form and the RSS link. The social links are only on the About page.
 
 ### 8.3 Comments
@@ -311,8 +322,8 @@ The owner approves each change to GitHub settings and each action on an external
 | Risk | Action |
 |---|---|
 | KaTeX does not show some GP formulas. | That post uses MathJax. |
-| About and Subscribe are also `index.qmd` files under `blog/`, so the post list can include them. | The plan selects the method (a listing filter or a file pattern). The check in section 7.1 or a manual check confirms the list. |
-| The old URL with a space (`election fraud`) fails as a Quarto alias. | Use a static redirect file in `site-root/blog/election fraud/...`. |
+| About and Subscribe are also `index.qmd` files under `blog/`, so the post list can include them. | The listing uses `exclude: {title: "{About,Subscribe}"}`. The feed check in section 7.1 confirms the list. |
+| The old URL with a space (`election fraud`) gets the wrong file name. | `redirects.py` decodes `%20` to a space, and a test covers it. |
 | GitHub serves a project site before a folder of the user site. | The cutover order handles this. Check after step 4. |
 | The inline `ojs_define` data delays the first text. | Write large data to JSON files and load them with `FileAttachment`. |
 | Each marimo export copies approximately 29 MB of frontend files. | No action for one notebook. Look again if the site gets more live notebooks. |
