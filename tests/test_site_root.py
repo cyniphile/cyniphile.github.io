@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -40,3 +41,29 @@ def test_favicon_files_use_the_real_icon_paths():
 def test_design_sources_are_not_published():
     assert not list(SITE_ROOT.rglob("*.xcf"))
     assert (ROOT / "design" / "frontpage.xcf").is_file()
+
+
+def test_404_has_two_versions_and_the_ascii_version_is_the_default():
+    html = read("404.html")
+    assert '<div id="v-ascii">' in html
+    assert '<div id="v-gif" hidden>' in html
+    assert "Inquiry is fatal to certainty." in html
+    assert "Page not found :(" in html
+
+
+def test_404_loads_the_video_only_when_it_is_chosen():
+    html = read("404.html")
+    assert 'data-src="/img/404-fire.mp4"' in html
+    assert 'src="/img/404-fire.mp4"' not in html.replace('data-src="/img/404-fire.mp4"', "")
+    assert (SITE_ROOT / "img" / "404-fire.mp4").is_file()
+
+
+def test_404_uses_absolute_local_paths():
+    html = read("404.html")
+    for url in re.findall(r'(?:src|href|data-src)="([^"]+)"', html):
+        if not url.startswith(("http", "//")):
+            assert url.startswith("/"), url
+
+
+def test_404_counts_visits():
+    assert GOATCOUNTER in read("404.html")
