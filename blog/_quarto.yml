@@ -14,7 +14,7 @@ website:
   navbar:
     logo: images/logo-wobble.png
     logo-alt: "Colored wavy lines"
-    logo-href: /
+    logo-href: https://www.lukeschiefelbein.com/
     title: "Luke Schiefelbein"
     right:
       - text: Blog
