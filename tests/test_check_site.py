@@ -135,12 +135,12 @@ def test_page_budget_does_not_count_blog_data_files(tmp_path):
 
 
 def test_page_budget_counts_referenced_file_once(tmp_path):
-    # A post page with a <script src="wiring.js"> should count that file once
+    # A post page with a <script src="wiring.js"> should count that file once, not twice
     write(tmp_path / "blog/index.html", "page")
     write(tmp_path / "blog/post/index.html", '<script src="wiring.js"></script>')
-    (tmp_path / "blog/post/wiring.js").write_bytes(os.urandom(100))
-    weight = check_page_budgets(tmp_path, max_bytes=1_000_000)
-    # Should have no errors since file is small
+    (tmp_path / "blog/post/wiring.js").write_bytes(os.urandom(3000))
+    # One count is ~3.07 KB (passes); two counts would be ~6.1 KB (fails)
+    weight = check_page_budgets(tmp_path, max_bytes=4000)
     assert weight == []
 
 
