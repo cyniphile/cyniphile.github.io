@@ -32,9 +32,7 @@ format:
     theme:
       light: [cosmo, theme-light.scss]
       dark: [darkly, theme-dark.scss]
-    html-math-method:
-      method: katex
-      url: "https://cdn.jsdelivr.net/npm/katex@0.18.9/dist/"
+    html-math-method: katex
     toc: true
     code-fold: true
     include-in-header: _includes/goatcounter.html

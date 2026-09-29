@@ -11,6 +11,7 @@ import check_site
 from redirects import write_redirects
 
 ROOT = Path(__file__).resolve().parents[1]
+KATEX_VERSION = "0.18.9"
 
 
 def run(cmd: list[str], cwd: Path) -> None:
@@ -30,6 +31,22 @@ def copy_tree(src: Path, dst: Path) -> None:
     shutil.copytree(src, dst, dirs_exist_ok=True)
 
 
+def pin_katex(site_dir: Path) -> int:
+    """Quarto loads KaTeX from katex@latest. Pin it to KATEX_VERSION in every page under blog/.
+
+    Return the number of pages that changed. Only the version text changes: the encoding
+    is UTF-8 and line endings stay as they are.
+    """
+    changed = 0
+    for page in sorted((site_dir / "blog").rglob("*.html")):
+        text = page.read_text(encoding="utf-8", newline="")
+        pinned = text.replace("katex@latest", f"katex@{KATEX_VERSION}")
+        if pinned != text:
+            page.write_text(pinned, encoding="utf-8", newline="")
+            changed += 1
+    return changed
+
+
 def copy_feed(site_dir: Path) -> None:
     """Keep the old feed URL /blog/feed.xml for current RSS subscribers."""
     feed = site_dir / "blog" / "index.xml"
@@ -45,6 +62,7 @@ def build(root: Path = ROOT) -> int:
         shutil.rmtree(site)
     run(["quarto", "render", "blog"], cwd=root)
     copy_tree(blog / "_site", site / "blog")
+    pin_katex(site)
     for src, out in live_notebooks(blog, site):
         run(
             ["marimo", "export", "html-wasm", str(src), "--mode", "run", "--no-show-code",
