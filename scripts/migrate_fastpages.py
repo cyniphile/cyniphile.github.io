@@ -115,13 +115,15 @@ def convert_captions(body: str) -> str:
         ![ALT](SRC "TITLE")  ->  ![TITLE](SRC){fig-alt="ALT"}
         ![ALT](SRC)          ->  ![](SRC){fig-alt="ALT"}
     An image with neither stays as it is. So does an image that already has an attribute block.
+    The old site showed the title as plain text. So the characters that Pandoc could read as
+    markup get a backslash: \\ [ ] _ * ` < $ (for example "_-_US_election_08_(" is not emphasis).
     """
 
     def rewrite(match: re.Match) -> str:
         alt, src, title = (" ".join((text or "").split()) for text in match.groups())
         if not alt and not title:
             return match.group(0)
-        caption = re.sub(r"([\\\[\]])", r"\\\1", title)
+        caption = re.sub(r"([\\\[\]_*`<$])", r"\\\1", title)
         fig_alt = alt.replace("\\", "\\\\").replace('"', '\\"')
         return f'![{caption}]({src}){{fig-alt="{fig_alt}"}}' if alt else f"![{caption}]({src})"
 

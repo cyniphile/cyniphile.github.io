@@ -103,6 +103,27 @@ def test_convert_captions_escapes_brackets_in_the_title():
     assert m.convert_captions('![](a.png "See [1] and [2]")') == "![See \\[1\\] and \\[2\\]](a.png)"
 
 
+def test_convert_captions_escapes_underscores_in_the_real_ballot_title():
+    # Real title of the voter-fraud post. Not escaped, Pandoc reads "_-_US_election_08_(" as
+    # emphasis and the caption shows "Larsz_-<em>US_election_08</em>(by-sa).jpg".
+    body = (
+        '![](stright-ticket-ballot.jpg "A ballot with a \'straight-party\' option. '
+        'https://commons.wikimedia.org/wiki/File:Larsz_-_US_election_08_(by-sa).jpg")\n'
+    )
+    assert m.convert_captions(body) == (
+        "![A ballot with a 'straight-party' option. "
+        "https://commons.wikimedia.org/wiki/File:Larsz\\_-\\_US\\_election\\_08\\_(by-sa).jpg]"
+        "(stright-ticket-ballot.jpg)\n"
+    )
+
+
+def test_convert_captions_escapes_every_character_that_markdown_could_read_as_markup():
+    # Escaped: backslash, [ ] _ * ` < $
+    assert m.convert_captions('![](a.png "a_b *c* `d` <e> $f$ \\g [h]")') == (
+        "![a\\_b \\*c\\* \\`d\\` \\<e> \\$f\\$ \\\\g \\[h\\]](a.png)"
+    )
+
+
 def test_convert_captions_handles_real_titles_with_parentheses_and_line_breaks():
     body = (
         '![abortion](https://upload.wikimedia.org/x_%2832676869635%29.jpg "Which sign? '
@@ -110,7 +131,7 @@ def test_convert_captions_handles_real_titles_with_parentheses_and_line_breaks()
         '![](fayette.png "Data: https://www.sos.alabama.gov/alabama-votes/voter/election-data\n")\n'
     )
     assert m.convert_captions(body) == (
-        "![Which sign? https://commons.wikimedia.org/wiki/File:Abortion_(32676869635).jpg)]"
+        "![Which sign? https://commons.wikimedia.org/wiki/File:Abortion\\_(32676869635).jpg)]"
         '(https://upload.wikimedia.org/x_%2832676869635%29.jpg){fig-alt="abortion"}\n'
         "![Data: https://www.sos.alabama.gov/alabama-votes/voter/election-data](fayette.png)\n"
     )

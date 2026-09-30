@@ -46,7 +46,7 @@ There are also other low-level complexities of the language. For example, there 
 The [Rust book](https://doc.rust-lang.org/book/) is a great resource for learning the language. Rust has a steep learning curve, but I've also not really done low-level programming before, so a lot of the effort for me was learning _that_. Overall I've found Rust is like bowling with the bumpers: it can be maddening to be always bouncing back and forth down the lane, but eventually I always knock some pins over, as opposed to C++ where I'd probably never trust my code to run in a production environment, especially one as correctness-critical as biology. 
 
 
-## Rust `.transcribe` 
+## Rust `.transcribe` {#rust-transcribe}
 
 The Rust implementation of `.transcribe` is pretty similar to the Python one (especially since I used Python type hints), except for the `&` borrow notation and the `.collect` one has to explicitly call on the lazily evaluated `.chars` iterator.  
 
