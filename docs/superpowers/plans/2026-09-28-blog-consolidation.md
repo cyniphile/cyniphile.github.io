@@ -1215,6 +1215,8 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 ### Task 6: Quarto blog skeleton
 
+> **Changed during execution (owner direction, 2026-09-29):** Task 6b replaced the look of this task (themes, navbar, logo, dark mode, About template) with the old fastpages look in light mode only. See spec section 8.6. The rest of this task (install, project, render list, freeze, GoatCounter) stays.
+
 **Files:**
 - Create: `blog/_quarto.yml`, `blog/theme-light.scss`, `blog/theme-dark.scss`, `blog/_includes/goatcounter.html`
 - Create: `blog/images/logo-wobble.png`, `blog/images/bull.png`

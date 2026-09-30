@@ -54,6 +54,7 @@ Other findings:
 | D7 | All 4 old posts move to the new site. Old URLs redirect. | Owner's choice. |
 | D8 | Comments: giscus. Analytics: GoatCounter. Subscribe: the same Mailchimp form. | giscus replaces utterances. GoatCounter is free and uses no cookies. |
 | D9 | The 404 page shows one of two versions at random. | Owner's choice. |
+| D10 | The blog keeps the old fastpages look, in light mode only (section 8.6). | Owner's direction: mechanical changes with minimal aesthetic change. |
 
 ## 4. Architecture
 
@@ -70,6 +71,7 @@ cyniphile.github.io/
 │   ├── index.qmd              # post list, RSS
 │   ├── about/index.qmd
 │   ├── subscribe/index.qmd
+│   ├── topics/index.qmd       # all posts, filtered by the category links
 │   ├── gaussian-processes/    # index.qmd, gp_data.py, wiring.js, live.py (marimo notebook)
 │   ├── abortion/              # index.qmd, images
 │   ├── voter-fraud/           # index.qmd, images
@@ -91,9 +93,10 @@ cyniphile.github.io/
 | Page | New URL | Old URLs that redirect to it |
 |---|---|---|
 | Landing page | `/` | (same) |
-| Post list | `/blog/` | `/blog/search/`, `/blog/categories/` |
+| Post list | `/blog/` | `/blog/search/` |
 | About | `/blog/about/` | (same) |
 | Subscribe | `/blog/subscribe/` | (same) |
+| Topics | `/blog/topics/` | `/blog/categories/` (the old "Topics" page) |
 | GP post | `/blog/gaussian-processes/` | `/marimo-blog/`, `/marimo-blog/apps/Intro_to_Gaussian_Process_Regression.html` |
 | GP live notebook | `/blog/gaussian-processes/live/` | (new) |
 | Abortion post | `/blog/abortion/` | `/blog/abortion/politics/2020/10/20/abortion.html` |
@@ -258,8 +261,8 @@ The GP post image for the post list and link previews is a JPEG of the chart of 
 
 ### 8.2 About and Subscribe
 
-- About: the text of `_pages/about.md`. "powered by fastpages" changes to "powered by Quarto". The page uses the Quarto about template `trestles`, with the pixel-art bull from the favicon as its image. The social links use the template's link list, with Bootstrap icons.
-- Subscribe: the same Mailchimp form and the RSS link. The social links are only on the About page.
+- About: the old page layout and text of `_pages/about.md`, with the same Font Awesome social icons. "powered by fastpages" changes to "powered by Quarto".
+- Subscribe: the old page layout, with the same Mailchimp form and the same social icons.
 
 ### 8.3 Comments
 
@@ -288,11 +291,16 @@ The files move into `site-root/`. The look does not change. Fixes:
 
 ### 8.6 Site functions and look
 
-- Post list at `/blog/`: the title, date, description and image of each post, with categories and RSS. Only posts show in the list, not About or Subscribe.
-- Search: Quarto site search.
-- Themes: `cosmo` (light) and `darkly` (dark), with a switch. The accent colors come from the wobble image.
-- Navigation bar: a small wobble image, your name, and links to Blog, About, Subscribe and RSS.
-- Math: KaTeX (`html-math-method: katex`). If a formula does not show correctly, that post uses MathJax.
+Owner direction (2026-09-29): "mechanical changes with minimal aesthetic change", and no dark mode. So the blog keeps the look of the old fastpages blog. (This replaces an earlier version of this section that had new themes, a new navigation bar and a dark-mode switch.)
+
+- Header: the old "Luke /// blog" header, with the same HTML and CSS: "Luke" links to the landing page, three colored slashes, "blog" links to `/blog/`, and a short centered line below. There is no Quarto navigation bar.
+- One light theme. There is no dark mode and no switch.
+- Fonts and colors as the old site: Lato for titles and links in the header, footer and post list; Source Serif Pro (20 px, #515151) for post text; the old system font stack for other text. Code blocks use the Dracula colors.
+- Post list at `/blog/`: the old cards, with the image on the left (hidden on small screens), then the title, description and date ("Dec 1, 2021"). There is no page heading, no category sidebar and no search box. Only posts show in the list, not About, Subscribe or Topics. The list has an RSS feed.
+- Post pages: the old post header (title, description, date, and a tag icon with one link per category to the Topics page). There is no table of contents box. Image titles show as small, centered, italic captions, as on the old site. Tables in posts use the old table styles.
+- Footer: the old fixed footer with the links About, Subscribe and Topics. (Search is dropped: Quarto search needs a navigation bar. The old Search URL redirects to `/blog/`.)
+- Topics page at `/blog/topics/`: a list of all posts that the category links can filter.
+- Math: KaTeX (`html-math-method: katex`, with the version pinned at build time). If a formula does not show correctly, that post uses MathJax.
 - Link previews: Open Graph and Twitter card tags.
 - Analytics: GoatCounter on all pages, including the landing page and the 404 page.
 
