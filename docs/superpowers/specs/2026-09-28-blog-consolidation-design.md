@@ -232,7 +232,7 @@ The same script runs on the laptop and in CI:
 With the phone settings from section 1.1:
 - The first text shows in less than 2 s on each post.
 - The GP widgets work in less than 3 s. Test each widget in section 5.4.
-- Each page looks correct at phone width and at desktop width, in light mode and in dark mode.
+- Each page looks correct at phone width and at desktop width (light mode only; the site has no dark mode).
 - The live notebook opens and runs.
 
 ## 8. Migration

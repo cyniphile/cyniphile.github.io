@@ -3298,8 +3298,8 @@ Also open `/blog/gaussian-processes/live/`. Expected: the notebook text shows fi
 
 - [ ] **Step 4: Check the look**
 
-For each page, check the phone width (390 px) and the desktop width (1280 px), in light mode and in dark mode.
-Expected: the text is easy to read, the charts are readable in both modes, and no page scrolls sideways.
+For each page, check the phone width (390 px) and the desktop width (1280 px). (The site has no dark mode; see spec section 8.6.)
+Expected: the text is easy to read, the charts are readable, and no page scrolls sideways.
 
 - [ ] **Step 5: Add the results to the pull request**
 
