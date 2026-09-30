@@ -12,6 +12,9 @@ keywords:
 - Trump
 - '2020'
 image: stright-ticket-ballot.jpg
+toc: true
+toc-location: body
+toc-title: ""
 ---
 
 ![Photo: New Hampshire Public Radio. https://www.lavocedinewyork.com/wp-content/uploads/2020/11/democracy-watch.jpg](https://www.lavocedinewyork.com/wp-content/uploads/2020/11/democracy-watch.jpg){fig-alt="fraud"}
