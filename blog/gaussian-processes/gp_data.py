@@ -77,16 +77,16 @@ def regression_data(seed=SEED):
     return {"x": _round(x), "a": panel(noisy, slope_a, 1.0, 1), "b": panel(less_noisy, 1.0, 0.1, 2)}
 
 
-def histogram_data(n=5000, seed=SEED):
+def histogram_data(n=5000, seed=SEED + 10):
     return {"z": _round(np.random.default_rng(seed).standard_normal(n))}
 
 
-def mvn2_data(n=2500, seed=SEED):
+def mvn2_data(n=2500, seed=SEED + 20):
     rng = np.random.default_rng(seed)
     return {"z": _round(rng.standard_normal((n, 2))), "reference": _round(rng.standard_normal((n, 2)))}
 
 
-def iid_data(seed=SEED):
+def iid_data(seed=SEED + 30):
     rng = np.random.default_rng(seed)
     return {f"d{d}": _round(rng.standard_normal((POOL, d))) for d in (1, 2, 3, 50)}
 
@@ -94,7 +94,7 @@ def iid_data(seed=SEED):
 def fuzzy_data():
     x = np.linspace(0, 50, 50)
     ells = list(range(1, 31))
-    pools = {str(ell): _round(sample_pool(np.zeros(50), rbf(x, x, ell))) for ell in ells}
+    pools = {str(ell): _round(sample_pool(np.zeros(50), rbf(x, x, ell), seed=SEED + 40)) for ell in ells}
     return {"x": _round(x), "ells": ells, "pools": pools}
 
 
@@ -105,7 +105,7 @@ def pi_data():
         "x": _round(x, 4),
         "labels": [f"{value:.4f}" for value in x],
         "cov": _round(cov, 4),
-        "pool": _round(sample_pool(x, cov)),
+        "pool": _round(sample_pool(x, cov, seed=SEED + 50)),
     }
 
 
@@ -116,14 +116,14 @@ def real50_data():
         "x": _round(x),
         "labels": [f"{value:.2f}" for value in x],
         "cov": _round(cov, 4),
-        "pool": _round(sample_pool(x, cov)),
+        "pool": _round(sample_pool(x, cov, seed=SEED + 60)),
     }
 
 
 def double_data():
     x = np.linspace(-1, 1, 50)
     ells = np.round(np.arange(1, 41) * 0.05, 2)
-    pools = [_round(sample_pool(np.zeros(50), rbf(x, x, ell))) for ell in ells]
+    pools = [_round(sample_pool(np.zeros(50), rbf(x, x, ell), seed=SEED + 70)) for ell in ells]
     return {"x": _round(x), "ells": ells.tolist(), "pools": pools}
 
 
@@ -133,8 +133,8 @@ def posterior_data(seed=SEED):
     x_test = np.linspace(0, 4 * np.pi, 50)
     y_mean, y_std = y_known.mean(), y_known.std()
     mean, cov = gp_posterior((y_known - y_mean) / y_std, x_known, x_test, ell=1.0)
-    pool = sample_pool(mean, cov, n=POOL, seed=seed) * y_std + y_mean
-    many = sample_pool(mean, cov, n=500, seed=seed + 1) * y_std + y_mean
+    pool = sample_pool(mean, cov, n=POOL, seed=seed + 80) * y_std + y_mean
+    many = sample_pool(mean, cov, n=500, seed=seed + 81) * y_std + y_mean
     truth = (0.1 * np.sin(x_test) + 1) * 200000 + x_test * 10000
     return {
         "x": _round(x_test),

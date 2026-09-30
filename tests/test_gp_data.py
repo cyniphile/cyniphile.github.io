@@ -61,3 +61,75 @@ def test_page_data_has_the_expected_shapes():
 def test_page_data_is_finite_and_fits_the_budget():
     text = json.dumps(gp_data.page_data(), allow_nan=False)
     assert len(gzip.compress(text.encode())) < 800_000
+
+
+def test_same_z_inside_a_widget():
+    """Within a widget, different ℓ values use the same z."""
+    tol = 1e-5  # Numerical tolerance for direct sample comparison
+    mean_zero = np.zeros(50)
+
+    # Test fuzzy_data: ℓ = 1 and ℓ = 20 should use the same z
+    x_fuzzy = np.linspace(0, 50, 50)
+    ell1, ell20 = 1.0, 20.0
+    cov1 = gp_data.rbf(x_fuzzy, x_fuzzy, ell1)
+    cov20 = gp_data.rbf(x_fuzzy, x_fuzzy, ell20)
+
+    # Generate samples with the same seed
+    pool_ell1 = gp_data.sample_pool(mean_zero, cov1, seed=gp_data.SEED + 40)
+    pool_ell20 = gp_data.sample_pool(mean_zero, cov20, seed=gp_data.SEED + 40)
+
+    # Recover z by solving: pool = mean + z @ L.T => pool - mean = z @ L.T
+    # => (pool - mean).T = L @ z.T => z.T = solve(L, (pool - mean).T)
+    # Note: sample_pool adds JITTER internally, so we use cov + JITTER here
+    L1 = np.linalg.cholesky(cov1 + gp_data.JITTER * np.eye(50))
+    L20 = np.linalg.cholesky(cov20 + gp_data.JITTER * np.eye(50))
+    z1 = np.linalg.solve(L1, (pool_ell1 - mean_zero).T)
+    z20 = np.linalg.solve(L20, (pool_ell20 - mean_zero).T)
+
+    assert np.allclose(z1, z20, atol=tol), "fuzzy pools with different ℓ should have same z"
+
+    # Test double_data: first and last ℓ should use the same z
+    x_double = np.linspace(-1, 1, 50)
+    ell_first = 0.05
+    ell_last = 2.0
+    cov_first = gp_data.rbf(x_double, x_double, ell_first)
+    cov_last = gp_data.rbf(x_double, x_double, ell_last)
+
+    # Generate samples with the same seed
+    pool_first = gp_data.sample_pool(mean_zero, cov_first, seed=gp_data.SEED + 70)
+    pool_last = gp_data.sample_pool(mean_zero, cov_last, seed=gp_data.SEED + 70)
+
+    # Recover z
+    L_first = np.linalg.cholesky(cov_first + gp_data.JITTER * np.eye(50))
+    L_last = np.linalg.cholesky(cov_last + gp_data.JITTER * np.eye(50))
+    z_first = np.linalg.solve(L_first, (pool_first - mean_zero).T)
+    z_last = np.linalg.solve(L_last, (pool_last - mean_zero).T)
+
+    assert np.allclose(z_first, z_last, atol=tol), "double pools with different ℓ should have same z"
+
+
+def test_sample_pool_produces_correct_covariance():
+    """Empirical covariance of samples matches the target covariance."""
+    cov_target = np.array([[1.0, 0.3, 0.1], [0.3, 1.0, -0.2], [0.1, -0.2, 1.0]])
+    pool = gp_data.sample_pool(np.zeros(3), cov_target, n=200_000, seed=1)
+    cov_empirical = np.cov(pool.T)
+
+    assert np.allclose(cov_empirical, cov_target, atol=0.02), "empirical covariance should match target"
+
+
+def test_different_widgets_do_not_share_random_numbers():
+    """Different widgets should not share random numbers."""
+    data = gp_data.page_data()
+
+    # hist.z should not equal first 5000 values of mvn2.z flattened
+    hist_z = np.array(data["hist"]["z"])
+    mvn2_z = np.array(data["mvn2"]["z"]).flatten()
+    first_5000_mvn2 = mvn2_z[:5000]
+
+    assert not np.allclose(hist_z, first_5000_mvn2), "hist and mvn2 should not share random numbers"
+
+    # fuzzy["pools"]["5"] should not equal double["pools"][3] (ℓ = 0.2)
+    fuzzy_pool_ell5 = np.array(data["fuzzy"]["pools"]["5"])
+    double_pool_ell02 = np.array(data["double"]["pools"][3])  # ℓ = 0.2
+
+    assert not np.allclose(fuzzy_pool_ell5, double_pool_ell02), "fuzzy and double should not share random numbers"
