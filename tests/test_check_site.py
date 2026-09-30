@@ -10,7 +10,7 @@ from check_site import (
     main,
     post_slugs,
 )
-from redirects import output_file, write_redirects
+from redirects import REDIRECTS, output_file, write_redirects
 
 
 def write(path: Path, text: str) -> Path:
@@ -20,7 +20,7 @@ def write(path: Path, text: str) -> Path:
 
 
 def site_with_targets(site: Path) -> Path:
-    for new in ["/blog/", "/blog/abortion/", "/blog/voter-fraud/", "/blog/biology-rust/", "/blog/gaussian-processes/"]:
+    for new in set(REDIRECTS.values()):
         write(output_file(site, new), "page")
     return site
 

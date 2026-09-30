@@ -1,0 +1,825 @@
+/*-- scss:defaults --*/
+
+// The old fastpages blog (minima and Primer, see ~/self/blog): one light
+// theme, no dark mode.
+$font-size-root: 16px;
+$font-size-base: 0.875rem;
+$line-height-base: 1.5;
+$font-family-sans-serif: "Segoe UI", SegoeUI, Roboto, "Segoe WP", "Helvetica Neue", Helvetica, Tahoma, Arial, sans-serif;
+$font-family-monospace: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+$body-bg: #ffffff;
+$body-color: #000000;
+$link-decoration: none;
+
+/*-- scss:rules --*/
+
+$old-serif: 'Source Serif Pro', serif;
+$old-lato: 'Lato', sans-serif;
+
+// ---------------------------------------------------------------------------
+// Links. On the live old page the links in the text have the text color and
+// no underline (the Primer style sheet of the old site uses color variables
+// that the old page never defines). Hover as in minima.
+// ---------------------------------------------------------------------------
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+a:hover {
+  color: #111111;
+  text-decoration: underline;
+}
+
+// ---------------------------------------------------------------------------
+// Page. Quarto puts the included header inside <main>, so <main> is a plain
+// full-width block. Everything in it except the header is one centered column,
+// 970 px wide with 15 px padding (minima .wrapper). Block children of <main>
+// keep the normal margin collapsing of the old pages.
+// ---------------------------------------------------------------------------
+body {
+  overflow-wrap: break-word;
+}
+
+#quarto-content > * {
+  padding-top: 0;
+}
+
+// Quarto keeps a row of at least 60 px below the page, for the links to the
+// next and the previous page. There are none here.
+#quarto-content.page-rows-contents {
+  grid-template-rows: [content-top] minmax(max-content, 1fr) [content-bottom] 0 [page-bottom];
+}
+
+// The old page ended 60 px below the last block (30 px margin of the post text
+// and 30 px padding of the page). The fixed footer is 33 px high, so it does
+// not cover the end of the page.
+#quarto-content > main.content {
+  display: block;
+  grid-column: screen-start / screen-end;
+  margin: 0;
+  padding: 0 0 30px;
+  font-family: $old-serif;
+}
+
+main.content > :last-child {
+  margin-bottom: 30px;
+}
+
+main.content > *:not(.site-header) {
+  box-sizing: border-box;
+  width: calc(100% - 30px);
+  max-width: 940px;
+  margin-right: auto;
+  margin-left: auto;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+// ---------------------------------------------------------------------------
+// Header (old _includes/header.html)
+// ---------------------------------------------------------------------------
+.wrapper {
+  max-width: calc(1000px - (30px));
+  margin-right: auto;
+  margin-left: auto;
+  padding-right: 15px;
+  padding-left: 15px;
+}
+
+.wrapper:after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+// padding-bottom: the old <main> had 30 px of padding above the page.
+.site-header {
+  border-top: 5px solid #424242;
+  border-bottom: none;
+  min-height: 55.95px;
+  line-height: 54px;
+  position: relative;
+  padding-bottom: 30px;
+}
+
+// The live old page shows no line here (its Primer style sheet uses a border
+// color variable that the old page never defines), only the space of the rule.
+.site-header hr {
+  width: 40%;
+  margin-top: 15px;
+  margin-bottom: 15px;
+  margin-left: 30%;
+  margin-right: 30%;
+  height: 0;
+  overflow: hidden;
+  background: transparent;
+  border: 0;
+  opacity: 1;
+}
+
+.site-title {
+  font-size: 1.625rem;
+  font-weight: 300;
+  letter-spacing: -1px;
+  margin-bottom: 0;
+  float: left;
+}
+
+@media screen and (max-width: 800px) {
+  .site-title {
+    padding-right: 45px;
+  }
+}
+
+.slash {
+  font-size: 1.625rem;
+  float: left;
+  padding-right: 2px;
+  margin-right: 2px;
+  margin-left: 2px;
+  letter-spacing: 0px;
+}
+
+.site-title,
+.slash {
+  margin-top: 10px;
+  padding-right: 1px;
+  font-weight: 900;
+  font-size: 50px;
+  color: #414040;
+}
+
+.site-title {
+  letter-spacing: 3px;
+}
+
+.site-title,
+.slash,
+.page-link,
+.post-link,
+.post-title {
+  font-family: $old-lato;
+}
+
+// ---------------------------------------------------------------------------
+// Post header (old _layouts/post.html) and page title
+// ---------------------------------------------------------------------------
+// Quarto adds an empty title block to the post list (it has no title).
+#title-block-header:empty {
+  display: none;
+}
+
+#title-block-header.post-header {
+  margin-top: 0;
+  margin-bottom: 0;
+  font-family: $font-family-sans-serif;
+}
+
+#title-block-header .post-title {
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+  font-family: $old-lato;
+  font-size: 2.625rem;
+  font-weight: 400;
+  letter-spacing: -1px;
+  line-height: 1.15;
+  color: #000000;
+}
+
+#title-block-header .page-description {
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+  color: #585858;
+  font-size: 115%;
+}
+
+#title-block-header .post-meta {
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+  font-size: 105%;
+  color: #828282;
+}
+
+// The old post header ended with an empty 32 px block for the notebook badges.
+// It is kept as space, so the text starts as far below the tags as before.
+#title-block-header .category-tags {
+  margin-top: 0.25rem;
+  margin-bottom: 0;
+  padding-bottom: calc(0.25rem + 32px);
+  font-size: 105%;
+  color: #000000;
+}
+
+#title-block-header .category-tags-icon {
+  font-size: 75%;
+  padding-left: 0.375em;
+  opacity: 0.35;
+}
+
+#title-block-header .category-tags-link {
+  color: rgb(187, 129, 129);
+  font-size: 13px;
+}
+
+// ---------------------------------------------------------------------------
+// Post text (old fastpages-styles.scss, .post-content)
+// ---------------------------------------------------------------------------
+main.content p,
+main.content li {
+  font-size: 20px;
+  color: #515151;
+}
+
+main.content p {
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+// Headings in the post text
+main.content h1,
+main.content h2,
+main.content h3,
+main.content h4,
+main.content h5,
+main.content h6 {
+  font-weight: normal;
+  color: #000000;
+  opacity: 1;
+  margin-top: 30px;
+  margin-bottom: 15px;
+}
+
+main.content h1 {
+  margin-top: 2.5rem;
+  margin-bottom: 0.5rem;
+  font-size: 2.625rem;
+  letter-spacing: -1px;
+  line-height: 1.15;
+}
+
+main.content h2 {
+  margin-top: 2rem;
+  margin-bottom: 0.5rem;
+  font-size: 1.75rem;
+  line-height: 1.5;
+}
+
+main.content h3 {
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+  font-size: 1.375rem;
+  line-height: 1.5;
+}
+
+main.content h4 {
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+  font-size: 1.25rem;
+  line-height: 1.5;
+}
+
+main.content h5 {
+  font-size: 1.125rem;
+  line-height: 1.5;
+}
+
+main.content h6 {
+  font-size: 1.0625rem;
+  line-height: 1.5;
+}
+
+// Quarto's own rules for headings and for the paragraph before a section
+main.content h2 {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+main.content > section:first-of-type > h2:nth-child(1) {
+  margin-top: 2rem;
+}
+
+main.content > p:has(+ section) {
+  margin-bottom: 1rem;
+}
+
+main.content h1 code,
+main.content h2 code,
+main.content h3 code,
+main.content h4 code {
+  font-size: 100%;
+}
+
+// Lists. The indent is padding, not margin: a list that is a direct child of
+// <main> gets its margins from the column rule above.
+main.content ul,
+main.content ol {
+  margin-top: 0;
+  margin-bottom: 15px;
+  padding-left: 30px;
+}
+
+main.content li > ul,
+main.content li > ol {
+  margin-bottom: 0;
+}
+
+// Quotes
+main.content blockquote {
+  margin-top: 0;
+  margin-bottom: 15px;
+  padding: 0 0 0 15px;
+  color: #828282;
+  border-left: 4px solid #e8e8e8;
+  font-size: 1.125rem;
+  font-style: italic;
+}
+
+main.content blockquote > :last-child {
+  margin-bottom: 0;
+}
+
+main.content blockquote i,
+main.content blockquote em {
+  font-style: normal;
+}
+
+// Images and figures. The old site made a <figure> with a <figcaption> from
+// each image title (the migrated posts now use the caption of the image).
+main.content img {
+  display: block;
+  vertical-align: top;
+  max-width: 100%;
+  height: auto;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+main.content .quarto-figure figure.figure {
+  display: block;
+  width: auto;
+  margin: 20px 40px;
+}
+
+main.content .quarto-figure figure.figure .figure-img {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+main.content .quarto-figure figure.figure > p {
+  margin: 0;
+}
+
+main.content .quarto-figure figure.figure > figcaption {
+  margin: 0;
+  text-align: center;
+  font-size: 0.8rem;
+  font-style: italic;
+  line-height: 1.5;
+  color: #515151;
+}
+
+// Footnotes. "appendix-style: none" in _quarto.yml removes Quarto's own
+// "Footnotes" heading, as the old pages had none (the Rust post has its own
+// "Notes" heading). Quarto puts a rule above the notes; the old pages had none.
+section.footnotes > hr {
+  display: none;
+}
+
+section.footnotes,
+section.footnotes p,
+section.footnotes li {
+  font-size: 12px;
+}
+
+// Rules in the text are spacers, not lines (the old pages showed no line).
+main.content hr {
+  height: 0;
+  margin: 15px 0;
+  overflow: hidden;
+  background: transparent;
+  border: 0;
+  opacity: 1;
+}
+
+// Code. Inline code as in the old Primer style sheet. Code blocks: the Dracula
+// colors come from "highlight-style: dracula"; box, size and background as
+// in the old .highlight block.
+main.content :not(pre) > code {
+  padding: 1px 5px;
+  font-size: 12px;
+  color: inherit;
+  background-color: #eeeeff;
+  border: 1px solid #e8e8e8;
+  border-radius: 3px;
+}
+
+main.content div.sourceCode {
+  margin: 0 0 24px;
+  background-color: #323443;
+  border: 1px solid #e8e8e8;
+  border-radius: 3px;
+}
+
+main.content div.sourceCode pre.sourceCode {
+  margin: 0;
+  padding: 8px 12px;
+  font-size: 12px;
+  line-height: 18px;
+  color: #f8f8f2;
+  background-color: transparent;
+  overflow-x: auto;
+}
+
+main.content pre.sourceCode > code.sourceCode {
+  padding: 0;
+}
+
+main.content pre.sourceCode > code.sourceCode > span {
+  line-height: 18px;
+}
+
+// Tables (old custom-styles.scss and minima)
+main.content table {
+  display: block;
+  float: none;
+  width: 100%;
+  max-width: 100%;
+  margin: auto;
+  overflow-x: auto;
+  white-space: normal;
+  border-collapse: collapse;
+  border: none;
+  text-align: center;
+  font-family: $old-lato;
+  font-size: 75%;
+  color: #3f3f3f;
+}
+
+main.content .table {
+  width: 100%;
+  margin: 0 auto;
+  border: 0;
+  text-align: center;
+}
+
+// Pandoc gives a table made in Markdown fixed column widths. The old tables
+// were sized by their text.
+main.content table col {
+  width: auto !important;
+}
+
+main.content table tr:nth-child(even) {
+  background-color: #f7f7f7;
+}
+
+main.content table th,
+main.content table td {
+  padding: 10px 15px;
+  font-size: 20px;
+  vertical-align: middle;
+}
+
+main.content table th {
+  text-align: center;
+  background-color: #f0f0f0;
+  border: 1px solid #e0e0e0;
+}
+
+main.content table td {
+  border: 1px solid #e8e8e8;
+}
+
+main.content td.rep {
+  background-color: #8d2626;
+  color: white;
+}
+
+main.content td.dem {
+  background-color: #2451a3;
+  color: white;
+}
+
+// ---------------------------------------------------------------------------
+// Post list (old _layouts/home.html and _includes/post_list_image_card.html):
+// image on the left (only on wide screens), then title, description and date.
+// ---------------------------------------------------------------------------
+.quarto-listing {
+  padding-bottom: 0;
+  font-family: $font-family-sans-serif;
+}
+
+.quarto-listing-container-default {
+  margin-right: 0;
+}
+
+div.quarto-post {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  gap: 0;
+  margin-bottom: 30px;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+div.quarto-post .thumbnail {
+  display: none;
+}
+
+div.quarto-post .body {
+  grid-column: 1;
+  grid-row: 1;
+  padding: 16px 16px 0;
+}
+
+div.quarto-post .metadata {
+  grid-column: 1;
+  grid-row: 2;
+  align-self: start;
+  margin-top: 0;
+  padding: 0 16px 16px;
+  display: block;
+  font-size: inherit;
+}
+
+@media (min-width: 1012px) {
+  div.quarto-post:has(.thumbnail) {
+    grid-template-columns: 33.3333% 66.6667%;
+  }
+
+  div.quarto-post .thumbnail {
+    display: block;
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    align-self: center;
+    padding: 16px;
+  }
+
+  div.quarto-post .body,
+  div.quarto-post .metadata {
+    grid-column: 2;
+  }
+}
+
+div.quarto-post .thumbnail img {
+  display: block;
+  width: 100%;
+  margin: 0;
+  object-fit: initial;
+}
+
+div.quarto-post .body h3.listing-title {
+  margin: 0.05rem 0;
+  font-size: 20px;
+  font-weight: normal;
+  line-height: 1.5;
+}
+
+div.quarto-post .body h3.listing-title a {
+  display: block;
+  font-family: $old-lato;
+  font-size: 1.5rem;
+  font-weight: normal;
+}
+
+div.quarto-post .body .listing-description {
+  margin-bottom: 0;
+}
+
+div.quarto-post .body .listing-description p {
+  margin: 0.05rem 0;
+  font-size: 15px;
+  color: #585858;
+}
+
+div.quarto-post .metadata .listing-date {
+  margin: calc(0.25em - 0.05rem) 0 0.25em;
+  font-size: 105%;
+  color: #828282;
+}
+
+div.quarto-post .thumbnail a:hover,
+div.quarto-post .listing-description a:hover,
+div.quarto-post .metadata a:hover {
+  color: inherit;
+  text-decoration: none;
+}
+
+// ---------------------------------------------------------------------------
+// Topics page (old _pages/tags.html): the list of categories above the list of
+// posts, one line for each post (title and date).
+// Quarto puts the category list in a margin column that it hides on small
+// screens. Here the list of categories is a row between the title and the
+// posts, on all screens.
+// ---------------------------------------------------------------------------
+#quarto-content:has(> #quarto-margin-sidebar .quarto-listing-category) {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 30px;
+}
+
+#quarto-content:has(> #quarto-margin-sidebar .quarto-listing-category) > main.content {
+  display: contents;
+}
+
+#quarto-content:has(> #quarto-margin-sidebar .quarto-listing-category) .site-header {
+  order: 0;
+}
+
+#quarto-content:has(> #quarto-margin-sidebar .quarto-listing-category) #title-block-header {
+  order: 1;
+}
+
+#quarto-content > #quarto-margin-sidebar:has(.quarto-listing-category) {
+  display: block;
+  position: static;
+  order: 2;
+  box-sizing: border-box;
+  width: calc(100% - 30px);
+  max-width: 940px;
+  margin: 0.5rem auto 1rem;
+  padding: 0;
+  font-family: $font-family-sans-serif;
+}
+
+#quarto-content:has(> #quarto-margin-sidebar .quarto-listing-category) .quarto-listing {
+  order: 3;
+  margin-bottom: 30px;
+}
+
+#quarto-margin-sidebar .quarto-listing-category-title {
+  display: inline;
+  margin: 0 0.75em 0 0;
+  font-size: inherit;
+  font-weight: 600;
+}
+
+#quarto-margin-sidebar .quarto-listing-category {
+  display: inline-flex;
+  flex-wrap: wrap;
+  padding: 0;
+  gap: 0 1.25em;
+  font-size: inherit;
+}
+
+#quarto-margin-sidebar .quarto-listing-category .category {
+  color: #828282;
+}
+
+#quarto-margin-sidebar .quarto-listing-category .category.active {
+  color: #000000;
+}
+
+div.quarto-post:not(:has(.thumbnail)) {
+  display: block;
+  margin: 0.25em 0;
+}
+
+div.quarto-post:not(:has(.thumbnail)) .body,
+div.quarto-post:not(:has(.thumbnail)) .metadata {
+  display: inline;
+  padding: 0;
+}
+
+div.quarto-post:not(:has(.thumbnail)) .body h3.listing-title,
+div.quarto-post:not(:has(.thumbnail)) .body h3.listing-title a,
+div.quarto-post:not(:has(.thumbnail)) .metadata .listing-date {
+  display: inline;
+  margin: 0;
+  font-family: $font-family-sans-serif;
+  font-size: 105%;
+  color: #828282;
+}
+
+div.quarto-post:not(:has(.thumbnail)) .metadata::before {
+  content: " \2022 ";
+  color: #828282;
+  font-size: 105%;
+}
+
+// ---------------------------------------------------------------------------
+// Scrollbars (old fastpages-styles.scss)
+// ---------------------------------------------------------------------------
+::-webkit-scrollbar {
+  width: 14px;
+  height: 18px;
+}
+
+::-webkit-scrollbar-thumb {
+  height: 6px;
+  border: 4px solid rgba(0, 0, 0, 0);
+  background-clip: padding-box;
+  -webkit-border-radius: 7px;
+  background-color: #9D9D9D;
+  -webkit-box-shadow: inset -1px -1px 0px rgba(0, 0, 0, 0.05), inset 1px 1px 0px rgba(0, 0, 0, 0.05);
+}
+
+::-webkit-scrollbar-button {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+::-webkit-scrollbar-corner {
+  background-color: transparent;
+}
+
+// ---------------------------------------------------------------------------
+// Subscribe page: the Mailchimp form has its own style sheet. On the old page
+// the placeholder had the color of the input text.
+// ---------------------------------------------------------------------------
+#mc_embed_signup input.email::placeholder {
+  color: inherit;
+  opacity: 1;
+}
+
+// ---------------------------------------------------------------------------
+// Social links (About and Subscribe)
+// ---------------------------------------------------------------------------
+.social-links {
+  padding-top: 15px;
+  padding-bottom: 15px;
+  text-align: center;
+  font-size: 20px;
+  color: #414040;
+}
+
+.social-links a:link,
+.social-links a:visited {
+  line-height: 1px;
+  font-size: 40px;
+  color: #414040;
+  padding: 10px;
+  padding-bottom: 25px;
+  padding-top: 25px;
+  text-decoration: none;
+}
+
+// ---------------------------------------------------------------------------
+// Footer (old .site-footer / .site-nav): fixed bar, links on the right
+// ---------------------------------------------------------------------------
+.footer {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  padding: 5px;
+  background: white;
+  border-top: 1px solid #e8e8e8;
+  color: white;
+}
+
+footer.footer .nav-footer {
+  display: block;
+  max-width: calc(1000px - (30px));
+  min-height: 0;
+  margin-right: auto;
+  margin-left: auto;
+  padding: 0 15px;
+  border-top: 0;
+  background: transparent;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+footer.footer .nav-footer:after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+footer.footer .nav-footer-left,
+footer.footer .nav-footer-center {
+  display: none;
+}
+
+footer.footer .nav-footer-right {
+  float: right;
+  margin: 0;
+  text-align: right;
+}
+
+footer.footer .footer-items {
+  display: flex;
+  margin: 0;
+  padding: 0;
+}
+
+footer.footer .footer-items .nav-link {
+  display: inline;
+  padding: 0;
+  font-family: $old-lato;
+  font-weight: 900;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #111111;
+}
+
+footer.footer .footer-items .nav-item:not(:last-child) .nav-link {
+  margin-right: 20px;
+}
+
+footer.footer .footer-items p {
+  display: inline;
+  margin: 0;
+}

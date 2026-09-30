@@ -104,6 +104,30 @@ def convert_images(body: str, final_name: Callable[[str], str]) -> tuple[str, li
     return new_body, found
 
 
+MARKDOWN_IMAGE = re.compile(r'!\[([^\]]*)\]\(\s*([^\s")]+)(?:\s+"([^"]*)")?\s*\)(?!\{)')
+
+
+def convert_captions(body: str) -> str:
+    """Show each image title as the caption, as the old site did, and keep the alt text as fig-alt.
+
+    Quarto shows the alt text as the caption. The old site showed the title as the caption and
+    never showed the alt text:
+        ![ALT](SRC "TITLE")  ->  ![TITLE](SRC){fig-alt="ALT"}
+        ![ALT](SRC)          ->  ![](SRC){fig-alt="ALT"}
+    An image with neither stays as it is. So does an image that already has an attribute block.
+    """
+
+    def rewrite(match: re.Match) -> str:
+        alt, src, title = (" ".join((text or "").split()) for text in match.groups())
+        if not alt and not title:
+            return match.group(0)
+        caption = re.sub(r"([\\\[\]])", r"\\\1", title)
+        fig_alt = alt.replace("\\", "\\\\").replace('"', '\\"')
+        return f'![{caption}]({src}){{fig-alt="{fig_alt}"}}' if alt else f"![{caption}]({src})"
+
+    return MARKDOWN_IMAGE.sub(rewrite, body)
+
+
 def needs_webp(src: Path) -> bool:
     return src.suffix.lower() in {".png", ".jpg", ".jpeg"} and src.stat().st_size > MAX_IMAGE_BYTES
 
@@ -151,6 +175,7 @@ def convert_post(src: Path, images_dir: Path, out_dir: Path) -> Path:
         return final_image_name(images_dir, old)
 
     body, found = convert_images(body, rename)
+    body = convert_captions(body)
     body = replace_dead_chart(remove_twitter_script(convert_youtube(convert_footnotes(body))))
     if re.search(r"\{\{(?!<)|\{%", body):
         raise ValueError(f"{src.name}: unconverted Liquid tags remain")

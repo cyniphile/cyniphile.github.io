@@ -10,7 +10,7 @@ SITE_URL = "https://www.lukeschiefelbein.com"
 
 REDIRECTS: dict[str, str] = {
     "/blog/search/": "/blog/",
-    "/blog/categories/": "/blog/",
+    "/blog/categories/": "/blog/topics/",
     "/blog/abortion/politics/2020/10/20/abortion.html": "/blog/abortion/",
     "/blog/election%20fraud/politics/2020/11/12/voter-fraud.html": "/blog/voter-fraud/",
     "/blog/programming/rust/biology/2021/12/01/biology-rust.html": "/blog/biology-rust/",

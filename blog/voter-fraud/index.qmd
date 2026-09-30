@@ -12,10 +12,9 @@ keywords:
 - Trump
 - '2020'
 image: stright-ticket-ballot.jpg
-toc: true
 ---
 
-![fraud](https://www.lavocedinewyork.com/wp-content/uploads/2020/11/democracy-watch.jpg "Photo: New Hampshire Public Radio. https://www.lavocedinewyork.com/wp-content/uploads/2020/11/democracy-watch.jpg")
+![Photo: New Hampshire Public Radio. https://www.lavocedinewyork.com/wp-content/uploads/2020/11/democracy-watch.jpg](https://www.lavocedinewyork.com/wp-content/uploads/2020/11/democracy-watch.jpg){fig-alt="fraud"}
 
 _Note: I have never voted in a Presidential election, and am not registered as a member of any political party_
     
@@ -85,7 +84,7 @@ I was intrigued and went down the rabbit hole myself. To get an idea for Ayyadur
 
 Ayyadurai's analysis centers around an odd aspect of Michigan voting: [straight ticket (or straight party) voting](https://en.wikipedia.org/wiki/Straight-ticket_voting). In a few states, Michigan one of them, you can skip voting for individual candidates for president, senate, congress, and other downballot offices. Instead, you can just check one box to vote for "The Democratic Party" (or "The Republican Party"), which automatically casts your votes to the Democrat (or Republican) candidates for every office on the ballot. It's basically a "select all" option.
 
-![](stright-ticket-ballot.jpg "A ballot with a 'straight-party' option. https://commons.wikimedia.org/wiki/File:Larsz_-_US_election_08_(by-sa).jpg")
+![A ballot with a 'straight-party' option. https://commons.wikimedia.org/wiki/File:Larsz_-_US_election_08_(by-sa).jpg](stright-ticket-ballot.jpg)
 
 Ayyadurai's team created a data visualization by plotting the difference between the straight-ticket voting compared with the regular candidate-by-candidate voting (which I'll refer to as "mixed-ticket", since you can mix which parties you vote for when voting in this way). First, they organized precinct voting data as follows:
 
@@ -140,7 +139,7 @@ Remember, only a few states do straight-ticket voting, and it turned out to be e
 
 Of course, we do know Michigan's data is available, so lets take the first minimal step of verification Dr. Shiva didn't bother to take: look at the same "suspicious" counties in the 2016 election, when Trump won Michigan. Is 2020 really an anomaly? Let's look at Oakland county in 2016:
 
-![](oakland-county-2016-small.png "Data: https://results.enr.clarityelections.com/MI/Oakland/63990/184040/en/summary.html.")
+![Data: https://results.enr.clarityelections.com/MI/Oakland/63990/184040/en/summary.html.](oakland-county-2016-small.png)
 
 
 It's the same super statistically significant downward linear trend. It's not as steep as in 2020, but still equally "suspicious" according to Ayyadurai's theory. What about the following counties:
@@ -150,8 +149,7 @@ It's the same super statistically significant downward linear trend. It's not as
 ![](walker.png)
 ![](autauga.png)
 ![](geneva.png)
-![](fayette.png "Data: https://www.sos.alabama.gov/alabama-votes/voter/election-data
-")
+![Data: https://www.sos.alabama.gov/alabama-votes/voter/election-data](fayette.png)
 
 Do these charts get your pattern researcher taste-buds salivating? Ready to take to the Twitters and yell fraud? Before you do, I should say this is data from Randoph, Jackson, Walker, Autauga, Geneva, and Fayette counties...in Alabama (2016 election)[^3]. This is obviously not the first state that comes to mind when you think of election hacking targets; the state hasn't voted for a Democrat president since Jimmy Carter in '76. 
 

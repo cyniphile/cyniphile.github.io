@@ -10,32 +10,39 @@ website:
   open-graph: true
   twitter-card:
     creator: "@dj_rump_roast"
-  search: true
-  navbar:
-    logo: images/logo-wobble.png
-    logo-alt: "Colored wavy lines"
-    logo-href: https://www.lukeschiefelbein.com/
-    title: "Luke Schiefelbein"
+  # No search and no navigation bar: the blog has the look of the old fastpages
+  # blog (see blog.scss). The footer has the old links, without Search.
+  search: false
+  page-footer:
     right:
-      - text: Blog
-        href: index.qmd
       - text: About
         href: about/index.qmd
       - text: Subscribe
         href: subscribe/index.qmd
-      - icon: rss
-        href: index.xml
-        aria-label: RSS feed
+      - text: Topics
+        href: topics/index.qmd
 
 format:
   html:
-    theme:
-      light: [cosmo, theme-light.scss]
-      dark: [darkly, theme-dark.scss]
+    # One light theme: Bootstrap and blog.scss. There is no dark mode.
+    theme: [default, blog.scss]
+    highlight-style: dracula
     html-math-method: katex
-    toc: true
+    toc: false
     code-fold: true
-    include-in-header: _includes/goatcounter.html
+    date-format: "MMM D, YYYY"
+    # No "Footnotes" heading: the old pages had none.
+    appendix-style: none
+    # Quarto reads a link that starts with "/" as a path from this folder (the
+    # blog is /blog/ on the site). So "/" is the blog home. The favicon links
+    # in head.html start with "/../img/", which Quarto changes to "../../img/"
+    # (from a post), a path to /img/ of the whole site.
+    include-in-header:
+      - _includes/goatcounter.html
+      - _includes/head.html
+    include-before-body: _includes/header.html
+    template-partials:
+      - _partials/title-block.html
 
 execute:
   freeze: auto

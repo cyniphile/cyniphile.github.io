@@ -1,0 +1,20 @@
+$if(title)$
+<header id="title-block-header" class="quarto-title-block default post-header">
+<h1 class="title post-title">$title$</h1>
+$if(hide-description)$
+$elseif(description)$
+<p class="page-description">$description$</p>
+$endif$
+$if(date)$
+<p class="post-meta post-meta-title"><time datetime="$date-meta$">$date$</time></p>
+$endif$
+$if(categories)$
+<p class="category-tags"><i class="fas fa-tags category-tags-icon"></i>
+$for(categories)$
+<a class="category-tags-link" href="../topics/index.html#category=$categories$">$categories$</a>
+$sep$&nbsp;
+$endfor$
+</p>
+$endif$
+</header>
+$endif$

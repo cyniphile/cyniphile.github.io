@@ -25,6 +25,10 @@ def test_redirect_page_points_to_the_new_path():
     assert '<a href="/blog/abortion/">' in page
 
 
+def test_the_old_topics_page_redirects_to_the_new_topics_page():
+    assert REDIRECTS["/blog/categories/"] == "/blog/topics/"
+
+
 def test_write_redirects_writes_one_page_for_each_old_url(tmp_path):
     written = write_redirects(tmp_path)
     assert len(written) == len(REDIRECTS)

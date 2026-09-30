@@ -11,10 +11,9 @@ keywords:
 - Trump
 - Barrett
 image: abortion-hurts-women-32676869635.jpg
-toc: true
 ---
 
-![abortion](https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/Abortion_Hurts_Women_%2832676869635%29.jpg/1280px-Abortion_Hurts_Women_%2832676869635%29.jpg "Which sign makes you angry? Photo: James McNellis from Washington, DC, United States. https://commons.wikimedia.org/wiki/File:Abortion_Hurts_Women_(32676869635).jpg)")
+![Which sign makes you angry? Photo: James McNellis from Washington, DC, United States. https://commons.wikimedia.org/wiki/File:Abortion_Hurts_Women_(32676869635).jpg)](https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/Abortion_Hurts_Women_%2832676869635%29.jpg/1280px-Abortion_Hurts_Women_%2832676869635%29.jpg){fig-alt="abortion"}
 
 
 Election time is upon us and abortion is both as important and as divisive as ever. The debate over Trump’s nomination of Amy Coney Barret to the Supreme Court revolved heavily around her probable pro-life[^1]  stance. Meanwhile, in the first presidential debate, Joe Biden explicitly left open the possibility of [packing the court](https://edition.cnn.com/2020/09/30/politics/joe-biden-court-packing/index.html) in response. 
@@ -22,7 +21,7 @@ Election time is upon us and abortion is both as important and as divisive as ev
 
 Abortion comes with such a permissive license to righteous anger that most people avoid the festering topic. No wonder a [Gallup poll]( https://news.gallup.com/poll/1576/abortion.aspx) indicates that in the past 25 years the American people have only gotten more divided on the issue, of late jittering around a 50-50 split between pro-life and pro-choice. Facebook feeds are crawling with memes about Bible-thumping, misogynistic white men, or organ harvesting Mengeles at Planned Parenthood. In the abortion debate, once you choose a side, the 150 million people in this country with the opposing view suddenly become some mix of stupid and Satan. 
 
-![abortion split](https://content.gallup.com/origin/gallupinc/GallupSpaces/Production/Cms/POLL/902aelfr70k9wvxxkig2fg.png "Chart: https://news.gallup.com/poll/1576/abortion.aspx")
+![Chart: https://news.gallup.com/poll/1576/abortion.aspx](https://content.gallup.com/origin/gallupinc/GallupSpaces/Production/Cms/POLL/902aelfr70k9wvxxkig2fg.png){fig-alt="abortion split"}
 
 
 Like all politics, the issue of abortion has suffered from the mainstream media polarization described so well in Matt Taibbi’s book [Hate Inc.](https://www.amazon.com/Hate-Inc-Todays-Despise-Another/dp/1949017257) The book's thesis is simple: hate sells. Rage is no longer just a toxic byproduct of our media; it's the new unnatural life-blood. Now most publications have morphed from forums of fruitful public discourse into profitable echo chambers.
@@ -60,7 +59,7 @@ Ultimately, the moral reasonableness of abortion goes up closer to conception, a
 
 > [abortion has] become so polarized in the United States that both positions are bullshit, and people on both sides know that both positions are bullshit. It’s bullshit to say that it is "just a women’s health issue and has no ethical implications whatsoever" even when it’s, as you say, about cutting a woman open at nine months and stabbing the embryo in the head[^5]. It’s also bullshit to say that the instant an egg is fertilized, that is a person that should have all of the rights to life that an adult should have and that it’s murder kill a blastocyst that’s smaller than the size of the head of a pin. Both positions are stupid. This is an incremental situation.
 
-![timeofabortion](https://content.gallup.com/origin/gallupinc/GallupSpaces/Production/Cms/POLL/b2mm7nepm0ebj1pxkar6xa.png "Chart: https://content.gallup.com/origin/gallupinc/GallupSpaces/Production/Cms/POLL/b2mm7nepm0ebj1pxkar6xa.png")
+![Chart: https://content.gallup.com/origin/gallupinc/GallupSpaces/Production/Cms/POLL/b2mm7nepm0ebj1pxkar6xa.png](https://content.gallup.com/origin/gallupinc/GallupSpaces/Production/Cms/POLL/b2mm7nepm0ebj1pxkar6xa.png){fig-alt="timeofabortion"}
 
 Polls show that nearly [60% of Americans are fine with first-trimester abortions](https://news.gallup.com/poll/235469/trimesters-key-abortion-views.aspx), even though only 46% say they are pro-life. Conversely, only 13% of respondents thought that abortion should be legal in the last trimester. Intuitively, this makes sense: early on the fetus is tiny, doesn’t look that human, and most importantly, can’t feel pain until about 24 weeks gestation. It's easy to see why pro-life rhetoric often revolves around late-term abortions, a favorite tack of Trump himself.
 
