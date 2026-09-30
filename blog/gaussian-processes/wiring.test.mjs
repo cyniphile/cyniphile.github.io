@@ -114,3 +114,40 @@ test("picksToSamples counts samples for each length scale and stops at the pool 
   ]);
   assert.equal(picksToSamples(Array(POOL_SIZE + 5).fill(1)).length, POOL_SIZE);
 });
+
+test("rbfCells uses the squared distance and the squared length scale", () => {
+  const cells = rbfCells([0, 3], 2);
+  assert.ok(Math.abs(cells[1].value - Math.exp(-9 / 8)) < 1e-12);
+});
+
+test("mvn2 Cholesky factor when the variance is not 1", () => {
+  const {points} = mvn2([[1, 0], [0, 1]], [0, 0], [[4, 2], [2, 3]]);
+  assert.deepEqual(points[0], [2, 1]);
+  assert.ok(Math.abs(points[1][1] - Math.sqrt(2)) < 1e-12);
+});
+
+test("mvn2 never returns NaN at the edge of a valid matrix", () => {
+  const edge = mvn2([[1, 2]], [0, 0], [[0.1, 0.9], [0.9, 8.1]]);
+  assert.equal(edge.ok, true);
+  assert.ok(edge.points.flat().every(Number.isFinite));
+  assert.equal(mvn2([[1, 2]], [0, 0], [[0.7, 2.1], [2.1, 6.3]]).ok, true);
+});
+
+test("mvn2 rejects negative variances and an empty mean box", () => {
+  assert.equal(mvn2([[1, 1]], [0, 0], [[-1, 0], [0, -1]]).ok, false);
+  assert.equal(mvn2([[1, 1]], [Number.NaN, 0], [[1, 0], [0, 1]]).ok, false);
+});
+
+test("parsePoints accepts exactly 30 numbers and rejects Infinity", () => {
+  assert.equal(parsePoints(Array.from({length: 30}, (_, i) => i).join(",")).error, null);
+  assert.equal(parsePoints("1e999").error, '"1e999" is not a number.');
+});
+
+test("ellIndex rounds decimal slider values", () => {
+  assert.equal(ellIndex(0.15), 2);
+  assert.equal(ellIndex(0.35), 6);
+});
+
+test("scaleNormals rejects a NaN variance", () => {
+  assert.throws(() => scaleNormals([1], 0, Number.NaN), RangeError);
+});
