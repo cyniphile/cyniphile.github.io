@@ -24,7 +24,7 @@ _Note: I have never voted in a Presidential election, and am not registered as a
 
 <div class='table'>
 <p><strong>Margin of Victory in Key States</strong></p>
-<table style='width: 400px'>
+<table style='width: 100%; max-width: 400px'>
   <thead>
     <tr>
       <th>&nbsp;</th>
