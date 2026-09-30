@@ -293,11 +293,11 @@ The files move into `site-root/`. The look does not change. Fixes:
 
 Owner direction (2026-09-29): "mechanical changes with minimal aesthetic change", and no dark mode. So the blog keeps the look of the old fastpages blog. (This replaces an earlier version of this section that had new themes, a new navigation bar and a dark-mode switch.)
 
-- Header: the old "Luke /// blog" header, with the same HTML and CSS: "Luke" links to the landing page, three colored slashes, "blog" links to `/blog/`, and a short centered line below. There is no Quarto navigation bar.
+- Header: the old "Luke /// blog" header, with the same HTML and CSS: "Luke" links to the landing page, three colored slashes, and "blog" links to `/blog/`. There is no Quarto navigation bar. Where the old CSS and the live old page differ (the header line is not visible, and links in the text have the text color with no underline), the blog copies the live page.
 - One light theme. There is no dark mode and no switch.
 - Fonts and colors as the old site: Lato for titles and links in the header, footer and post list; Source Serif Pro (20 px, #515151) for post text; the old system font stack for other text. Code blocks use the Dracula colors.
 - Post list at `/blog/`: the old cards, with the image on the left (hidden on small screens), then the title, description and date ("Dec 1, 2021"). There is no page heading, no category sidebar and no search box. Only posts show in the list, not About, Subscribe or Topics. The list has an RSS feed.
-- Post pages: the old post header (title, description, date, and a tag icon with one link per category to the Topics page). There is no table of contents box. Image titles show as small, centered, italic captions, as on the old site. Tables in posts use the old table styles.
+- Post pages: the old post header (title, description, date, and a tag icon with one link per category to the Topics page). The Rust and voter-fraud posts show the old inline table of contents at the top of the post body; the abortion post shows none, as on the old site. Image titles show as small, centered, italic captions, as on the old site. Tables in posts use the old table styles.
 - Footer: the old fixed footer with the links About, Subscribe and Topics. (Search is dropped: Quarto search needs a navigation bar. The old Search URL redirects to `/blog/`.)
 - Topics page at `/blog/topics/`: a list of all posts that the category links can filter.
 - Math: KaTeX (`html-math-method: katex`, with the version pinned at build time). If a formula does not show correctly, that post uses MathJax.
