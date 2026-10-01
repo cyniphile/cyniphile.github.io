@@ -15,9 +15,15 @@ KATEX_PAGE = """<head>
 """
 
 
+@pytest.fixture(autouse=True)
+def no_notebook_conversion(monkeypatch):
+    """The fake repo's notebook.py is empty: converting it is not the subject of these tests."""
+    monkeypatch.setattr(build.marimo_to_blog, "up_to_date", lambda post: True)
+
+
 def fake_repo(root: Path) -> Path:
     (root / "blog/gaussian-processes").mkdir(parents=True)
-    (root / "blog/gaussian-processes/live.py").write_text("", encoding="utf-8")
+    (root / "blog/gaussian-processes/notebook.py").write_text("", encoding="utf-8")
     (root / "blog/abortion").mkdir()
     (root / "blog/abortion/index.qmd").write_text("", encoding="utf-8")
     (root / "site-root").mkdir()
@@ -32,10 +38,10 @@ def fake_quarto_output(root: Path) -> None:
     (out / "index.xml").write_text("<rss/>", encoding="utf-8")
 
 
-def test_live_notebooks_map_each_live_py_to_a_live_folder(tmp_path):
+def test_live_notebooks_map_each_notebook_to_a_live_folder(tmp_path):
     root = fake_repo(tmp_path)
     assert build.live_notebooks(root / "blog", root / "_site") == [
-        (root / "blog/gaussian-processes/live.py", root / "_site/blog/gaussian-processes/live/index.html")
+        (root / "blog/gaussian-processes/notebook.py", root / "_site/blog/gaussian-processes/live/index.html")
     ]
 
 
@@ -158,3 +164,15 @@ def test_build_stops_when_site_delete_fails(tmp_path, monkeypatch):
     with pytest.raises(OSError):
         build.build(root)
     assert calls == []  # No run calls should have been made
+
+
+def test_convert_notebook_posts_converts_only_out_of_date_posts(tmp_path, monkeypatch):
+    for slug in ("fresh", "stale"):
+        (tmp_path / slug).mkdir()
+        (tmp_path / slug / "notebook.py").write_text("", encoding="utf-8")
+    (tmp_path / "plain").mkdir()  # a post without a notebook
+    converted = []
+    monkeypatch.setattr(build.marimo_to_blog, "up_to_date", lambda post: post.name == "fresh")
+    monkeypatch.setattr(build.marimo_to_blog, "convert", lambda post: converted.append(post.name))
+    assert build.convert_notebook_posts(tmp_path) == [tmp_path / "stale"]
+    assert converted == ["stale"]

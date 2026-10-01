@@ -2,6 +2,9 @@ project:
   type: website
   render:
     - "**/*.qmd"
+  # The widget runtime of posts converted from marimo notebooks (scripts/marimo_to_blog.py)
+  resources:
+    - "assets/mb/*"
 
 website:
   title: "Luke Schiefelbein"

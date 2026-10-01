@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 import check_site
+import marimo_to_blog
 from redirects import write_redirects
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -20,11 +21,27 @@ def run(cmd: list[str], cwd: Path) -> None:
 
 
 def live_notebooks(blog_dir: Path, site_dir: Path) -> list[tuple[Path, Path]]:
-    """Each blog/<slug>/live.py becomes _site/blog/<slug>/live/index.html."""
+    """Each blog/<slug>/notebook.py is also a live notebook: _site/blog/<slug>/live/index.html."""
     return [
         (src, site_dir / "blog" / src.parent.name / "live" / "index.html")
-        for src in sorted(blog_dir.glob("*/live.py"))
+        for src in sorted(blog_dir.glob("*/notebook.py"))
     ]
+
+
+def convert_notebook_posts(blog_dir: Path) -> list[Path]:
+    """Write index.qmd (and widgets/) for each blog/<slug>/notebook.py that is out of date.
+
+    A conversion runs the notebook and simulates its widgets (minutes), so an up-to-date post
+    (same notebook, post.yml and converter) is not converted again. Return the converted posts.
+    """
+    converted = []
+    for notebook in sorted(blog_dir.glob("*/notebook.py")):
+        post = notebook.parent
+        if not marimo_to_blog.up_to_date(post):
+            print(f"+ convert {post}", flush=True)
+            marimo_to_blog.convert(post)
+            converted.append(post)
+    return converted
 
 
 def copy_tree(src: Path, dst: Path) -> None:
@@ -60,13 +77,14 @@ def build(root: Path = ROOT) -> int:
     blog = root / "blog"
     if site.exists():
         shutil.rmtree(site)
+    convert_notebook_posts(blog)
     run(["quarto", "render", "blog"], cwd=root)
     copy_tree(blog / "_site", site / "blog")
     pin_katex(site)
     for src, out in live_notebooks(blog, site):
         run(
-            ["marimo", "export", "html-wasm", str(src), "--mode", "run", "--no-show-code",
-             "--execute", "-o", str(out), "-f"],
+            # edit mode: the reader sees the code and can run it (the post links here for the code)
+            ["marimo", "export", "html-wasm", str(src), "--mode", "edit", "--execute", "-o", str(out), "-f"],
             cwd=root,
         )
     copy_tree(root / "site-root", site)
