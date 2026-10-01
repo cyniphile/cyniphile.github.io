@@ -1938,6 +1938,8 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 ### Task 9: GP data module
 
+> **Replaced 2026-10-01** (owner direction): the marimo → blog converter does this work. See `docs/superpowers/specs/2026-10-01-marimo-to-blog-design.md`. Do not implement this task.
+
 **Files:**
 - Create: `blog/gaussian-processes/gp_data.py`
 - Create: `tests/test_gp_data.py`
@@ -2223,6 +2225,8 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 ### Task 10: GP widget helpers in JavaScript
 
+> **Replaced 2026-10-01** (owner direction): the marimo → blog converter does this work. See `docs/superpowers/specs/2026-10-01-marimo-to-blog-design.md`. Do not implement this task.
+
 **Files:**
 - Create: `blog/gaussian-processes/wiring.js`
 - Create: `blog/gaussian-processes/wiring.test.mjs`
@@ -2479,6 +2483,8 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ---
 
 ### Task 11: The GP post page
+
+> **Replaced 2026-10-01** (owner direction): the marimo → blog converter does this work. See `docs/superpowers/specs/2026-10-01-marimo-to-blog-design.md`. Do not implement this task.
 
 **Files:**
 - Create: `blog/gaussian-processes/index.qmd` (made by a one-time script that you do not commit)
@@ -2939,6 +2945,8 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ---
 
 ### Task 12: The live notebook
+
+> **Done 2026-10-01** with the converter work: the build exports `blog/<slug>/notebook.py` (not `live.py`) to `live/` in marimo's edit mode, so the code is visible.
 
 **Files:**
 - Create: `blog/gaussian-processes/live.py` (a copy of the marimo notebook, without changes)

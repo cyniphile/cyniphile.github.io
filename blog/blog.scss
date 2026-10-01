@@ -823,3 +823,9 @@ footer.footer .footer-items p {
   display: inline;
   margin: 0;
 }
+
+// A long display equation scrolls inside the text column, not the whole page.
+.katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+}

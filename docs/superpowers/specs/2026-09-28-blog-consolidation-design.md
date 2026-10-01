@@ -72,7 +72,7 @@ cyniphile.github.io/
 │   ├── about/index.qmd
 │   ├── subscribe/index.qmd
 │   ├── topics/index.qmd       # all posts, filtered by the category links
-│   ├── gaussian-processes/    # index.qmd, gp_data.py, wiring.js, live.py (marimo notebook)
+│   ├── gaussian-processes/    # notebook.py + post.yml → index.qmd, widgets/ (scripts/marimo_to_blog.py)
 │   ├── abortion/              # index.qmd, images
 │   ├── voter-fraud/           # index.qmd, images
 │   ├── biology-rust/          # index.qmd, images
@@ -83,7 +83,7 @@ cyniphile.github.io/
 ├── scripts/build.py           # full build (section 6.3)
 ├── scripts/check_site.py      # automatic checks (section 7.1)
 ├── scripts/migrate_fastpages.py  # one-time converter for the old posts (section 8.1)
-├── tests/                     # pytest tests for the scripts and gp_data.py
+├── tests/                     # pytest tests for the scripts and the converter
 ├── pyproject.toml, uv.lock    # Python for build time
 └── .github/workflows/publish.yml
 ```
@@ -118,64 +118,21 @@ The checks in section 7.1 use the same list. (Quarto `aliases` are not used. The
 ### 5.1 Kinds of post
 
 1. **Text post:** `index.qmd` with Markdown only.
-2. **Data post:** `index.qmd` with Python chunks. Python runs at build time. The outputs are static charts or widgets. The code is folded (`code-fold: true`), so a reader can click "Code" to see it.
-3. **Post with a live notebook:** a data post with a marimo notebook `live.py` in the same folder. The build exports the notebook to `<post URL>/live/`. The post has a link: "Open the live notebook (downloads Python: 20–70 s on a phone)".
+2. **Notebook post:** a marimo notebook `notebook.py` and `post.yml` (title, description, date, categories, image) in the post folder. `scripts/marimo_to_blog.py` writes `index.qmd` and `widgets/` from them; the build runs it when the notebook, `post.yml` or the converter changes. The build also exports `notebook.py` to `<post URL>/live/` in marimo's edit mode (the code is visible, and the reader can run it): the live notebook.
 
-### 5.2 Widget pattern
+### 5.2 Widgets (changed 2026-10-01)
 
-1. A Python chunk calculates all data at build time with a fixed random seed. It sends the data to the page with `ojs_define(...)`.
-2. An Observable JS (OJS) cell makes the controls (`Inputs.range`, `Inputs.button`, `Inputs.text`) and selects the precomputed data for the current setting. A "New Sample" button adds the next stored sample to the chart. Each stored set has 50 samples. After 50 samples are on the chart, the button adds no more. "Clear" removes the samples, and the next click starts again at the first sample.
-3. Observable Plot draws the chart. Plot is part of Quarto OJS.
-
-Example:
-
-````markdown
-```{python}
-#| code-fold: true
-pools = {l: sample_gp(x, l, n=50).round(3).tolist() for l in range(1, 31)}
-ojs_define(fuzzy={"x": x.tolist(), "pools": pools})
-```
-
-```{ojs}
-viewof ell = Inputs.range([1, 30], {step: 1, value: 5, label: "ℓ"})
-viewof n = Inputs.button("New Sample")
-Plot.plot({marks: fuzzy.pools[ell].slice(0, n).map(ys =>
-  Plot.line(ys, {x: (_, i) => fuzzy.x[i], y: d => d}))})
-```
-````
+The first design (Observable JS controls and Observable Plot charts over data from a separate `gp_data.py`) is replaced by the marimo → blog converter, on the owner's direction ("remiplementing in js is going to be a nightmare", "js version sucks", "made a dedicated transpilation script for these widgets so future posts can be easily made blog ready"). The design is in `docs/superpowers/specs/2026-10-01-marimo-to-blog-design.md`. In short: marimo runs the notebook at build time; the notebook's own Plotly and Altair figures and marimo-look controls go in the page; slider and button states are precomputed with marimo's semantics; matrix inputs that feed `np.random.multivariate_normal` are computed in the browser from recorded draws; code editors run live with Pyodide.
 
 ### 5.3 Rules
 
-- JavaScript does no vector or matrix math. Short scalar formulas are permitted, for example μ + σ·z, the RBF formula for one pair of points, or the 3-line formula for a 2×2 Cholesky.
-- The HTML, scripts and data of a post must be less than 1.5 MB compressed (images and the live notebook are not included).
-- Widgets use Observable Plot. Static charts can use Plot or a Python library. Plotly adds approximately 1 MB, so use it only when you need its functions.
+- A post has no JavaScript of its own. The shared runtime is `blog/assets/mb/` (written one time).
+- The page HTML (with the default figures) must be less than 1.5 MB compressed. Widget data (`widgets/*.json`) loads when its widget comes near the screen.
 
 ### 5.4 GP post
 
-- Title, text and LaTeX come from `apps/Intro_to_Gaussian_Process_Regression.py` in `marimo-blog`.
-- `gp_data.py` does all calculations with numpy, with the same formulas as the notebook. In the post, numpy replaces scipy, so the build environment does not need scipy. (The export of the live notebook installs its own packages from the notebook header.)
-- Random numbers come from `np.random.default_rng` with fixed seeds. A sample is L·z, where L is the Cholesky factor of the covariance (plus 10⁻⁶ on the diagonal) and z is a standard-normal vector. All ℓ values use the same z, so the curves change smoothly when the reader moves an ℓ slider.
-- `wiring.js` holds the small JavaScript helpers (button counters, text parsing, the scalar formulas). Node's built-in test runner tests it.
-- The live notebook `live.py` is the current marimo notebook without changes.
-- Two text changes: "10,000 samples" becomes "5,000 samples" (the widget uses 5,000), and the sentence about "the ellipses in the upper right corner" points to the live notebook and to `gp_data.py`.
-
-| # | Widget in the notebook | New widget |
-|---|---|---|
-| 1 | Regression lines A and B: "New Sample", "Reset" | Python stores 50 (β₀, β₁) pairs and their lines for each plot. The buttons show the next line or clear the lines. |
-| 2 | Histogram with "Mean" (−5 to 5, step 0.1) and "Variance" (0.1 to 5, step 0.1) sliders | Python stores 5,000 standard-normal values z. The chart shows μ + σ·z with σ = √variance. (The notebook uses the slider value as σ, so its label is wrong. The new widget fixes this.) |
-| 3 | 2×2 covariance matrix and mean vector (step 0.1, minimum 0) | 5 number inputs with the same limits. Python stores 2,500 standard-normal pairs. The browser applies the 2×2 Cholesky formula. If the matrix is not positive semi-definite, the widget shows an error and only the gray reference cloud. |
-| 4 | 1-D, 2-D, 3-D samples: "New Sample", "Clear" | Python stores 50 samples for each. |
-| 5 | 50-D samples: "New Sample", "Connect Points", "Clear" | Python stores 50 samples. "Connect Points" is a switch that changes the dots to lines with dots. |
-| 6 | ℓ slider (1 to 30, step 1, default 5) with the 50×50 RBF heatmap (shown two times in the post) | The browser calculates exp(−(xᵢ−xⱼ)²/(2ℓ²)) for each cell. Both heatmaps use the same slider. |
-| 7 | "Fuzzy" samples with the current ℓ: "New Sample", "Clear" | Python stores 50 samples for each ℓ from 1 to 30. The samples on the chart follow the ℓ slider of widget 6. |
-| 8 | Samples at multiples of π; 50 samples at real values: "New Sample", "Clear" | Python stores 50 samples for each. |
-| 9 | Code editor (the reader edits Python) | A text box for the points (default `1.549, 2, 3, 4, 5, 6, 10`) and an ℓ input (default 1). The browser calculates the annotated RBF heatmap. A link opens the live notebook. |
-| 10 | ℓ slider (0.01 to 2.0, step 0.01, default 0.5) with samples and heatmap | The step changes to 0.05 (40 values from 0.05 to 2.0). Python stores 50 samples for each ℓ. The browser calculates the heatmap. "New Sample" adds a sample for the current ℓ, with ℓ in the legend. |
-| 11 | Posterior samples of the housing data (ℓ = 1): "New Sample", "Clear" | Python stores 50 posterior samples. |
-| 12 | "Sample 500 Functions from Posterior" | Python stores 500 posterior samples. The button shows all of them at 2% opacity. |
-| 13 | Static charts: regression data, identity matrix, covariance heatmaps, housing data, conditional covariance and mean | Static Observable Plot charts from Python data. |
-
-Estimated precomputed data: approximately 210,000 numbers with 3 decimals, which is approximately 1.4 MB raw and 0.5 MB compressed.
+- `blog/gaussian-processes/notebook.py` is a copy of `apps/Intro_to_Gaussian_Process_Regression.py` from `marimo-blog`.
+- One text change: the sentence about "the ellipses in the upper right corner" links to the live notebook (the marimo page's menu has no "show code").
 
 ## 6. Build and deploy
 
@@ -197,7 +154,7 @@ To see the full site: run `uv run scripts/build.py`, then `python -m http.server
 The same script runs on the laptop and in CI:
 1. Delete `_site/`.
 2. Run `quarto render blog`. Quarto writes `blog/_site/`. Copy it to `_site/blog/`.
-3. For each `blog/*/live.py`: run `marimo export html-wasm --mode run --no-show-code --execute` to `_site/blog/<slug>/live/index.html`.
+3. For each `blog/*/notebook.py`: convert it to `index.qmd` when it is out of date (before the Quarto render), and run `marimo export html-wasm --mode edit --execute` to `_site/blog/<slug>/live/index.html`.
 4. Copy `site-root/` to `_site/`.
 5. Write the redirect pages from `scripts/redirects.py`. If a real page already exists at an old path, stop the build.
 6. Copy `_site/blog/index.xml` to `_site/blog/feed.xml`.
@@ -333,6 +290,6 @@ The owner approves each change to GitHub settings and each action on an external
 | About and Subscribe are also `index.qmd` files under `blog/`, so the post list can include them. | The listing uses `exclude: {title: "{About,Subscribe}"}`. The feed check in section 7.1 confirms the list. |
 | The old URL with a space (`election fraud`) gets the wrong file name. | `redirects.py` decodes `%20` to a space, and a test covers it. |
 | GitHub serves a project site before a folder of the user site. | The cutover order handles this. Check after step 4. |
-| The inline `ojs_define` data delays the first text. | Write large data to JSON files and load them with `FileAttachment`. |
+| Large widget data delays the first text. | The converter writes widget data to `widgets/*.json`; the runtime loads it near the screen. |
 | Each marimo export copies approximately 29 MB of frontend files. | No action for one notebook. Look again if the site gets more live notebooks. |
 | The giscus mapping does not find the moved discussion. | Set the discussion title to the exact pathname. |

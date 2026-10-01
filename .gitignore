@@ -12,3 +12,4 @@ __pycache__/
 # Local tools
 .DS_Store
 .claude/worktrees/
+__marimo__/
