@@ -86,11 +86,22 @@ def share_arrays(obj) -> tuple[object, dict]:
 
 
 def post_markdown(text: str, title: str | None, first: bool) -> str:
-    """Blog headings: the post title is the only h1, so the title heading goes and other h1 → h2."""
+    """Blog headings: the post title is the only h1, so the title heading goes and other h1 → h2
+    (not in fenced code blocks, where "# " starts a comment)."""
     lines = text.split("\n")
     if first and lines and lines[0].startswith("# ") and title and lines[0][2:].strip() == title.strip():
         lines = lines[1:]
-    return "\n".join("#" + line if re.match(r"^# ", line) else line for line in lines).strip()
+    out, fence = [], None
+    for line in lines:
+        match = re.match(r"^\s*(`{3,}|~{3,})", line)
+        if match:
+            marker = match.group(1)
+            if fence is None:
+                fence = marker[0] * len(marker)
+            elif marker.startswith(fence):
+                fence = None
+        out.append("#" + line if fence is None and re.match(r"^# ", line) else line)
+    return "\n".join(out).strip()
 
 
 def blog_base(post_dir: Path) -> str:
@@ -158,8 +169,10 @@ def emit(page: Page, post_dir: Path, front: dict, source: str, plotly_version: s
     templates: dict = {}
     figures_json = [c.rendered.figures for c in page.cells if c.kind == "html" and c.rendered is not None]
     types = trace_types({"figures": figures_json, "groups": page.groups})
+    # live: the live notebook (the build exports notebook.py there); controls that the converter
+    # could not make interactive link to it
     model = {"version": 1, "source": source, "plotly": plotly_version, "plotlyBundle": plotly_bundle(types),
-             "templates": templates, "cells": {}, "controls": page.controls, "groups": {}}
+             "live": "live/", "templates": templates, "cells": {}, "controls": page.controls, "groups": {}}
     sizes = {}
     for cell in page.cells:
         if cell.kind == "html" and cell.rendered is not None:
@@ -174,7 +187,9 @@ def emit(page: Page, post_dir: Path, front: dict, source: str, plotly_version: s
         model["groups"][gid] = {"kind": data["kind"], "src": f"widgets/{gid}.json",
                                 "cells": sorted(set(data.get("cells", [])) | control_cells)}
 
-    front = {**front, "resources": ["widgets/*.json"]}
+    resources = front.get("resources") or []
+    resources = [resources] if isinstance(resources, str) else list(resources)
+    front = {**front, "resources": [*resources, *(["widgets/*.json"] if "widgets/*.json" not in resources else [])]}
     title = front.get("title")
     base = blog_base(post_dir)
     parts = [GENERATED.format(source=source), "",

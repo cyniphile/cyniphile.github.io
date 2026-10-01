@@ -179,8 +179,41 @@ def reset_ops(default: dict, state: dict) -> list[dict]:
     return [{"op": "reset"}, *changes]
 
 
+_MISSING = object()
+
+
+def get_path(obj, path):
+    """The value at a path of keys and list indexes, or _MISSING."""
+    for key in path:
+        if isinstance(obj, dict) and key in obj:
+            obj = obj[key]
+        elif isinstance(obj, list) and isinstance(key, int) and 0 <= key < len(obj):
+            obj = obj[key]
+        else:
+            return _MISSING
+    return obj
+
+
+def filled_ops(default: dict, own: list[dict], paths: set[tuple]) -> list[dict]:
+    """A slider state's operations that work from any earlier state, with no reset (a reset would
+    remove the click history that marimo keeps): every path that some state changes gets its
+    value in this state. The default value where this state does not change the path, first and
+    parents before children, then this state's own operations."""
+    own_paths = {tuple(op["path"]) for op in own}
+    fillers = []
+    for path in sorted(paths, key=len):
+        if path in own_paths:
+            continue
+        value = get_path(default, path)
+        fillers.append({"op": "del", "path": list(path)} if value is _MISSING
+                       else {"op": "set", "path": list(path), "value": value})
+    return fillers + own
+
+
 def apply(figure: dict, ops: list[dict], default: dict | None = None) -> dict:
-    """Apply operations to a figure (the Python twin of the runtime's apply, for tests)."""
+    """Apply operations to a figure (the Python twin of mb-core.js applyOps).
+
+    A set makes missing parent objects; a del of a missing value does nothing."""
     import copy
 
     fig = copy.deepcopy(figure)
@@ -191,14 +224,25 @@ def apply(figure: dict, ops: list[dict], default: dict | None = None) -> dict:
         elif kind in ("set", "del"):
             target = fig
             for key in op["path"][:-1]:
+                if isinstance(target, dict) and target.get(key) is None:
+                    if kind == "del":
+                        target = None
+                        break
+                    target[key] = {}
                 target = target[key]
+            if target is None:
+                continue
+            last = op["path"][-1]
             if kind == "set":
-                if isinstance(target, list) and op["path"][-1] == len(target):
+                if isinstance(target, list) and last == len(target):
                     target.append(copy.deepcopy(op["value"]))
                 else:
-                    target[op["path"][-1]] = copy.deepcopy(op["value"])
+                    target[last] = copy.deepcopy(op["value"])
+            elif isinstance(target, list):
+                if isinstance(last, int) and last < len(target):
+                    del target[last]
             else:
-                del target[op["path"][-1]]
+                target.pop(last, None)
         elif kind == "add":
             fig.setdefault("data", []).extend(copy.deepcopy(op["traces"]))
         elif kind == "truncate":

@@ -60,10 +60,15 @@ def test_js_core_matches_python():
                                                 {"op": "truncate", "n": 0}]},
         {"figure": {"data": [], "layout": {}}, "default": fig,
          "ops": [{"op": "reset"}, {"op": "del", "path": ["layout", "height"]}]},
+        {"figure": {"data": [], "layout": {}}, "default": fig,
+         "ops": [{"op": "set", "path": ["layout", "title", "text"], "value": "t"},
+                 {"op": "del", "path": ["layout", "xaxis", "range"]}]},
     ]
     normal = [{"loc": 1.5, "scale": 2.0, "z": [0.0, 1.0, -1.0]}, {"loc": [0, 10], "scale": [1, 2], "z": [1.0, 1.0]}]
+    # loc and scale as full-size arrays, loc shared through the array table ({"$a"})
     drag = [[1.0, 20, 0.1, 0, None], [1.0, -200, 0.1, 0, None], [0.5, 4, 0.1, None, 0.5], [2, 37, 1, None, None]]
     resolve = {"value": {"y": {"$a": "k"}, "x": {"$normal": {"loc": 1, "scale": 2, "z": "p"}},
+                         "w": {"$normal": {"loc": {"$a": "k"}, "scale": [1, 3], "z": "p"}},
                          "t": {"$template": "t1"}},
                "tables": {"arrays": {"k": [1, 2]}, "pools": {"p": [0.5, -0.5]}, "templates": {"t1": {"layout": {}}}}}
     out = run_node({"mvn": mvn, "ops": ops_cases, "normal": normal, "drag": drag, "resolve": resolve})
@@ -80,4 +85,4 @@ def test_js_core_matches_python():
         assert js == O.apply(case["figure"], case["ops"], case["default"])
     assert out["normal"] == [[1.5, 3.5, -0.5], [1, 12]]
     assert out["drag"] == [1.2, 0, 0.5, 6]
-    assert out["resolve"] == {"y": [1, 2], "x": [2, 0], "t": {"layout": {}}}
+    assert out["resolve"] == {"y": [1, 2], "x": [2, 0], "w": [1.5, 0.5], "t": {"layout": {}}}

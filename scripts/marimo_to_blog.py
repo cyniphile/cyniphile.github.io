@@ -23,6 +23,7 @@ import yaml
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from marimo_blog import model as M  # noqa: E402
+from marimo_blog import verify as V  # noqa: E402
 from marimo_blog.emit import emit, recorded_source  # noqa: E402
 from marimo_blog.runner import Session  # noqa: E402
 
@@ -44,11 +45,15 @@ def up_to_date(post_dir: Path) -> bool:
     return recorded_source(post_dir / "index.qmd") == source_hash(post_dir)
 
 
-def convert(post_dir: Path) -> M.Page:
+def convert(post_dir: Path, verify: bool = True) -> M.Page:
+    """Write the post. With verify, replay random reader events on the result and on marimo, and
+    report each difference as a warning (scripts/marimo_blog/verify.py)."""
     post_dir = Path(post_dir)
     front = yaml.safe_load((post_dir / "post.yml").read_text())
     with Session(post_dir / "notebook.py") as session:
         page = M.build(session)
+    if verify:
+        page.warnings += [f"differs from marimo: {problem}" for problem in V.verify(post_dir / "notebook.py", page)]
     sizes = emit(page, post_dir, front, source_hash(post_dir), plotly.offline.get_plotlyjs_version())
     for warning in page.warnings:
         print(f"warning: {warning}", file=sys.stderr)
@@ -62,13 +67,15 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("post", type=Path, help="the post folder (with notebook.py and post.yml)")
     parser.add_argument("--check", action="store_true", help="exit 1 if index.qmd is out of date")
+    parser.add_argument("--no-verify", action="store_true",
+                        help="do not replay random events against marimo (faster)")
     args = parser.parse_args(argv)
     if args.check:
         ok = up_to_date(args.post)
         print(f"{args.post}: {'up to date' if ok else 'out of date (run scripts/marimo_to_blog.py)'}")
         return 0 if ok else 1
     start = time.time()
-    page = convert(args.post)
+    page = convert(args.post, verify=not args.no_verify)
     print(f"{args.post}: {len(page.cells)} cells, {len(page.controls)} controls, "
           f"{len(page.groups)} groups, {time.time() - start:.0f} s")
     return 0

@@ -235,3 +235,70 @@ def test_project_links_and_blog_base(tmp_path):
     (tmp_path / "post").mkdir()
     assert E.blog_base(tmp_path / "post") == "/blog"
     assert E.blog_base(tmp_path / "missing" / "post") == ""
+
+
+def test_post_markdown_keeps_comments_in_code_blocks():
+    text = "Intro\n\n```python\n# a comment\nx = 1\n```\n\n# Part"
+    assert E.post_markdown(text, "T", first=True) == "Intro\n\n```python\n# a comment\nx = 1\n```\n\n## Part"
+
+
+def test_render_altair_chart_element_and_unknown_elements():
+    spec = {"mark": "point"}
+    html = (_ui("v", f"<marimo-vega data-spec='{_attr(json.dumps(spec))}'></marimo-vega>")
+            + "<marimo-tabs><p>first tab</p></marimo-tabs>")
+    out = H.render(html, lambda _: None)
+    assert out.charts == [spec] and 'class="mb-chart"' in out.html
+    assert "<p>first tab</p>" in out.html and "marimo-" not in out.html  # content stays, without interaction
+    assert len(out.warnings) == 2
+
+
+def test_apply_makes_missing_parents_and_ignores_missing_deletes():
+    fig = {"data": [], "layout": {}}
+    ops = [{"op": "set", "path": ["layout", "title", "text"], "value": "t"},
+           {"op": "del", "path": ["layout", "xaxis", "range"]}]
+    assert O.apply(fig, ops) == {"data": [], "layout": {"title": {"text": "t"}}}
+
+
+def test_filled_ops_set_every_changed_path():
+    default = {"layout": {"title": {"text": "d"}}, "data": [{"y": [1]}]}
+    paths = {("layout", "title", "text"), ("data", 0, "y"), ("layout", "width")}
+    own = [{"op": "set", "path": ["data", 0, "y"], "value": [5]}]
+    ops = O.filled_ops(default, own, paths)
+    current = {"layout": {"title": {"text": "x"}, "width": 3}, "data": [{"y": [9]}, {"y": [7]}]}  # 2nd: a click
+    assert O.apply(current, ops) == {"layout": {"title": {"text": "d"}}, "data": [{"y": [5]}, {"y": [7]}]}
+
+
+def test_invalid_cov_respects_bounds():
+    from marimo_blog import sampler as S
+    spec = {"value": [[1.0, 0.0], [0.0, 1.0]], "step": [[0.1, 0.1], [0.1, 0.1]], "min": [[0, 0], [0, 0]],
+            "max": [[1, 1], [1, 1]], "symmetric": True}
+    invalid = S._invalid_cov(spec)
+    assert invalid is not None and not rng.is_psd(invalid) and all(0 <= v <= 1 for row in invalid for v in row)
+    assert S._invalid_cov({**spec, "max": [[1, 0], [0, 1]]}) is None  # only diagonal matrices: always valid
+
+
+def test_sampler_target_keeps_constant_fields():
+    from marimo_blog import sampler as S
+    samples = np.array([[1.0, 2.0], [3.0, 4.0]])
+    rows = [{"x": 1.0, "y": 2.0, "kind": "sim"}, {"x": 3.0, "y": 4.0, "kind": "sim"}]
+    out = H.Rendered(html="", charts=[{"datasets": {"d": rows}, "layer": [{"data": {"name": "d"}}]}])
+    target = S._find_target(out, samples)
+    assert target["fields"] == ["x", "y"] and target["extra"] == {"kind": "sim"}
+    rows[1]["kind"] = "other"
+    assert S._find_target(out, samples) is None  # a field that changes from row to row: not supported
+
+
+def test_verify_reports_a_wrong_state(tmp_path):
+    import copy
+    from pathlib import Path as P
+    from marimo_blog import verify as V
+    from marimo_blog.runner import Session
+    path = P(__file__).parent / "fixtures" / "marimo" / "mini" / "notebook.py"
+    with Session(path) as session:
+        page = M.build(session)
+    assert V.verify(path, page) == []
+    broken = copy.deepcopy(page)
+    gid = broken.controls["size"]["group"]
+    for key in broken.groups[gid]["states"]:
+        broken.groups[gid]["states"][key] = {}  # slider moves that do nothing
+    assert any("differs" in p or "in the blog" in p for p in V.verify(path, broken))

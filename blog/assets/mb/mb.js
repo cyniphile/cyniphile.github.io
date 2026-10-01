@@ -120,16 +120,21 @@ function queueDraw(task) {
   return drawQueue;
 }
 
+// A figure has at most one queued redraw; it draws the latest JSON (a slider drag changes a
+// figure many times, and only the last state needs to be drawn).
 function drawFigure(key) {
   const entry = figures.get(key);
   if (!entry) return Promise.resolve();
   entry.div.style.height = `${entry.fig.layout?.height ?? 540}px`;
   if (!entry.near) return Promise.resolve();
-  return queueDraw(async () => {
+  if (entry.pending) return entry.pending;
+  entry.pending = queueDraw(async () => {
+    entry.pending = null;
     if (hasTex(entry.fig)) await loadMathJax();
     const Plotly = await loadPlotly((entry.fig.data || []).map((trace) => trace.type || "scatter"));
     await Plotly.react(entry.div, entry.fig.data || [], entry.fig.layout || {}, entry.config);
   });
+  return entry.pending;
 }
 
 function drawChart(key, div, spec) {
@@ -260,15 +265,15 @@ function tableEvent(group, state, name, value) {
     return;
   }
   const info = data.buttons[name];
+  const entry = follow(info.table, core.stateKey(info.keys.map((s) => state.index[s])));
   if (info.kind === "fixed") {
-    applyEffect(info.ops, group.tables);
-    if (info.resets) for (const button of Object.keys(data.buttons)) state.clicks[button] = 0;
+    applyEffect(entry, group.tables);
+    for (const button of info.resets || []) state.clicks[button] = 0;
     return;
   }
-  const clicks = follow(info.clicks, core.stateKey(info.keys.map((s) => state.index[s])));
   const k = state.clicks[name] ?? 0;
-  if (!clicks || k >= clicks.length) return; // the precomputed samples are used up until "Clear"
-  applyEffect(clicks[k], group.tables);
+  if (!entry || k >= entry.length) return; // the precomputed clicks are used up (until a reset)
+  applyEffect(entry[k], group.tables);
   state.clicks[name] = k + 1;
 }
 
@@ -290,7 +295,10 @@ async function samplerEvent(group, state, name, value) {
   const target = data.target;
   if (target.chart !== undefined) {
     const view = await charts.get(`${data.cell}:${target.chart}`);
-    const rows = samples.map((s) => Object.fromEntries(target.fields.map((field, j) => [field, s[j]])));
+    const rows = samples.map((s) => ({
+      ...(target.extra || {}),
+      ...Object.fromEntries(target.fields.map((field, j) => [field, s[j]])),
+    }));
     await view.data(target.dataset, rows).runAsync();
   } else {
     const key = `${data.cell}:${target.figure}`;
@@ -342,6 +350,7 @@ async function liveEvent(group, state, name, value) {
   const results = JSON.parse(py.runPython("mb_live.run(mb_code)"));
   for (const [cell, out] of Object.entries(results)) {
     const cellEl = cellElement(cell);
+    if (!cellEl) continue; // a cell without output (it computes values for other cells)
     let errorBox = cellEl.querySelector(".mb-error");
     if (out.kind === "error") {
       if (!errorBox) {
@@ -353,11 +362,20 @@ async function liveEvent(group, state, name, value) {
       continue;
     }
     errorBox?.remove();
-    if (out.kind === "plotly" && figures.has(`${cell}:0`)) {
+    if (out.kind === "plotly" && out.figure && figures.has(`${cell}:0`)) {
       const entry = figures.get(`${cell}:0`);
       entry.fig = out.figure;
       entry.config = { ...entry.config, ...out.config };
       await drawFigure(`${cell}:0`);
+    } else if (out.kind === "html" && out.html) {
+      let box = cellEl.querySelector(".mb-live-html");
+      if (!box) {
+        box = document.createElement("div");
+        box.className = "mb-live-html";
+        cellEl.append(box);
+      }
+      box.innerHTML = out.html;
+      renderMath(box);
     }
   }
   status("");
@@ -375,14 +393,32 @@ function mountControl(el) {
   if (!spec) return;
   el.dataset.mounted = "1";
   ({ slider: mountSlider, button: mountButton, matrix: mountMatrix, editor: mountEditor })[spec.kind]?.(el, spec);
+  if (!spec.group) disableControl(el);
+}
+
+// The converter could not make this control interactive: it stays at its default value, and a
+// link points to the live notebook, where it works.
+function disableControl(el) {
+  el.classList.add("mb-static");
+  for (const input of el.querySelectorAll("input, button, textarea")) input.disabled = true;
+  for (const td of el.querySelectorAll("td")) td.classList.add("mb-disabled");
+  if (MODEL.live) {
+    const link = document.createElement("a");
+    link.className = "mb-live-link";
+    link.href = MODEL.live;
+    link.textContent = "try it in the live notebook";
+    el.append(link);
+  }
 }
 
 function mountSlider(el, spec) {
   const id = `mb-${spec.name}`;
   el.classList.add("mb-control");
-  el.innerHTML = `${spec.label ? `<label for="${id}">${escapeHtml(spec.label)}</label>` : ""}`
+  // label_html: the notebook's label, with math as KaTeX spans (from the converter)
+  el.innerHTML = `${spec.label_html ? `<label for="${id}">${spec.label_html}</label>` : ""}`
     + `<input type="range" id="${id}" min="0" max="${spec.values.length - 1}" step="1" value="${spec.index}">`
     + (spec.show_value ? `<span class="mb-value"></span>` : "");
+  renderMath(el);
   const input = el.querySelector("input");
   const paint = () => {
     input.style.setProperty("--fill", `${(100 * input.value) / Math.max(1, input.max)}%`);
@@ -402,7 +438,8 @@ function mountButton(el, spec) {
   const button = document.createElement("button");
   button.type = "button";
   button.className = `mb-btn mb-btn-${spec.kind_style}`;
-  button.textContent = spec.label;
+  button.innerHTML = spec.label_html || escapeHtml(spec.label);
+  renderMath(button);
   button.disabled = spec.disabled;
   button.addEventListener("click", () => emit(spec.name, 1));
   el.replaceChildren(button);
@@ -416,6 +453,14 @@ function mountMatrix(el, spec) {
   const value = spec.value.map((row) => row.map(Number));
   const format = (v) => v.toFixed(spec.precision ?? 1);
   el.classList.add("mb-matrix");
+  if (spec.label_html && !el.previousElementSibling?.classList.contains("mb-matrix-label")) {
+    // marimo shows the label before the matrix (outside its brackets)
+    const label = document.createElement("span");
+    label.className = "mb-control mb-matrix-label";
+    label.innerHTML = spec.label_html;
+    el.before(label);
+    renderMath(label);
+  }
   el.innerHTML = `<table><tbody>${value.map((row, i) => `<tr>${row.map((v, j) =>
     `<td tabindex="0" data-i="${i}" data-j="${j}" aria-label="Row ${i + 1}, Column ${j + 1}">${format(v)}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
   const cellOf = (i, j) => el.querySelector(`td[data-i="${i}"][data-j="${j}"]`);
@@ -439,6 +484,7 @@ function mountMatrix(el, spec) {
     const min = cellParam(spec.min, i, j), max = cellParam(spec.max, i, j);
     let start = null;
     td.addEventListener("pointerdown", (event) => {
+      if (td.classList.contains("mb-disabled")) return;
       start = { x: event.clientX, value: value[i][j] };
       td.setPointerCapture(event.pointerId);
       td.classList.add("mb-dragging");
@@ -455,6 +501,7 @@ function mountMatrix(el, spec) {
     td.addEventListener("pointerup", stop);
     td.addEventListener("pointercancel", stop);
     td.addEventListener("keydown", (event) => {
+      if (td.classList.contains("mb-disabled")) return;
       const delta = { ArrowUp: 1, ArrowRight: 1, ArrowDown: -1, ArrowLeft: -1 }[event.key];
       if (!delta) return;
       event.preventDefault();

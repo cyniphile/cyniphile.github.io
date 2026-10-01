@@ -104,11 +104,12 @@ def is_psd(cov, tol: float = PSD_TOL) -> bool:
 
 
 def sqrt_factor(cov) -> np.ndarray:
-    """F with F.T @ F == cov for a PSD matrix (negative eigenvalues count as 0)."""
+    """F with F.T @ F == cov for a PSD matrix. Like numpy (an SVD), a negative eigenvalue counts
+    with its absolute value, so a matrix that is not valid gives numpy's spread."""
     cov = np.asarray(cov, dtype=float)
     sym = (cov + cov.T) / 2.0
     values, vectors = jacobi_eigh(sym) if len(cov) <= JACOBI_MAX_SIZE else np.linalg.eigh(sym)
-    return np.sqrt(np.clip(values, 0.0, None))[:, None] * vectors.T
+    return np.sqrt(np.abs(values))[:, None] * vectors.T
 
 
 def normal(loc=0.0, scale=1.0, size=None):
@@ -143,7 +144,7 @@ def multivariate_normal(mean, cov, size=None, check_valid="warn", tol=PSD_TOL):
     final_shape = [*shape, mean.shape[0]]
     # numpy draws before it checks the matrix, so a failed check still uses the draws
     z = np.random.standard_normal(final_shape).reshape(-1, mean.shape[0])
-    call = Call("multivariate_normal", {"mean": mean, "cov": cov}, z)
+    call = Call("multivariate_normal", {"mean": mean, "cov": cov, "check_valid": check_valid}, z)
     if check_valid != "ignore" and not is_psd(cov, tol):
         if check_valid == "raise":
             call.error = NOT_PSD

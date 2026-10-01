@@ -17,7 +17,7 @@ export function resolve(value, tables) {
   if ("$template" in value) return clone(tables.templates[value.$template]);
   if ("$normal" in value) {
     const { loc, scale, z } = value.$normal;
-    return normal(loc, scale, resolve(tables.pools[z], tables));
+    return normal(resolve(loc, tables), resolve(scale, tables), resolve(tables.pools[z], tables));
   }
   const out = {};
   for (const [key, v] of Object.entries(value)) out[key] = resolve(v, tables);
@@ -34,8 +34,16 @@ export function applyOps(figure, ops, defaultFigure) {
         break;
       case "set":
       case "del": {
+        // A set makes missing parent objects; a del of a missing value does nothing.
         let target = fig;
-        for (const key of op.path.slice(0, -1)) target = target[key];
+        for (const key of op.path.slice(0, -1)) {
+          if (target[key] === undefined || target[key] === null) {
+            if (op.op === "del") { target = null; break; }
+            target[key] = {};
+          }
+          target = target[key];
+        }
+        if (target === null) break;
         const last = op.path[op.path.length - 1];
         if (op.op === "set") target[last] = clone(op.value);
         else if (Array.isArray(target)) target.splice(last, 1);
@@ -58,7 +66,8 @@ export function applyOps(figure, ops, defaultFigure) {
   return fig;
 }
 
-// loc + scale * z (loc and scale: numbers or arrays of the same length as z)
+// loc + scale * z (loc and scale: numbers, or arrays of the same length as z: the converter
+// broadcasts them in Python)
 export function normal(loc, scale, z) {
   const at = (v, i) => (Array.isArray(v) ? v[i] : v);
   return z.map((zi, i) => at(loc, i) + at(scale, i) * zi);
@@ -117,13 +126,13 @@ export function isPsd(cov, tol = 1e-8) {
   return Math.min(...values) >= -tol * Math.max(1, largest);
 }
 
-// F with F^T F = cov (negative eigenvalues count as 0): F[i][j] = sqrt(lambda_i) * v[j][i]
+// F with F^T F = cov for a valid matrix: F[i][j] = sqrt(abs(lambda_i)) * v[j][i] (numpy: an SVD)
 export function sqrtFactor(cov) {
   const n = cov.length;
   const sym = cov.map((row, i) => row.map((v, j) => (v + cov[j][i]) / 2));
   const { values, vectors } = jacobiEigh(sym);
   return values.map((lambda, i) => {
-    const root = Math.sqrt(Math.max(lambda, 0));
+    const root = Math.sqrt(Math.abs(lambda)); // |lambda|, as numpy (an SVD) does
     return Array.from({ length: n }, (_, j) => root * vectors[j][i]);
   });
 }

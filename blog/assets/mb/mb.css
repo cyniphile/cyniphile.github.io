@@ -199,3 +199,13 @@ main.content .mb-matrix td.mb-dragging {
   max-width: 100%;
   height: auto !important; /* Vega sets the pixel height inline */
 }
+
+/* A control that the converter could not make interactive (see mb.js disableControl) */
+.mb-static {
+  opacity: 0.6;
+}
+.mb-live-link {
+  display: inline-block;
+  margin-left: 8px;
+  font: 13px/1.4 "PT Sans", sans-serif;
+}

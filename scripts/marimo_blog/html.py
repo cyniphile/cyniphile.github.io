@@ -51,11 +51,24 @@ def data_attrs(tag: Tag) -> dict:
     return attrs
 
 
-def label_text(label) -> str:
-    """marimo labels are rendered markdown HTML; the blog controls show their text."""
+def label_html(label) -> str:
+    """A marimo label (rendered markdown HTML) as blog HTML: math as Quarto's KaTeX spans
+    (the runtime renders them), without marimo's markdown wrappers."""
     if not label:
         return ""
-    return BeautifulSoup(str(label), "html.parser").get_text(" ", strip=True)
+    soup = BeautifulSoup(str(label), "html.parser")
+    for tex in soup.find_all("marimo-tex"):
+        tex.replace_with(_tex(tex, soup))
+    for span in soup.find_all("span", class_=["markdown", "paragraph"]):
+        span.unwrap()
+    return str(soup).strip()
+
+
+def label_text(label) -> str:
+    """The plain text of a marimo label (math as its TeX), for accessible names."""
+    if not label:
+        return ""
+    return BeautifulSoup(label_html(label), "html.parser").get_text(" ", strip=True)
 
 
 def slider_values(attrs: dict) -> list:
@@ -82,14 +95,18 @@ def _tex(tag: Tag, soup: BeautifulSoup) -> Tag:
 
 
 def control_spec(kind: str, name: str | None, attrs: dict) -> dict:
-    spec = {"kind": kind, "name": name, "label": label_text(attrs.get("label"))}
+    spec = {"kind": kind, "name": name, "label": label_text(attrs.get("label")),
+            "label_html": label_html(attrs.get("label"))}
     if kind == "button":
         spec["kind_style"] = attrs.get("kind") or "neutral"
         spec["disabled"] = bool(attrs.get("disabled"))
     elif kind == "slider":
         values = slider_values(attrs)
         initial = attrs.get("initial-value")
-        spec.update(values=values, index=_closest(values, initial), debounce=bool(attrs.get("debounce")),
+        # With steps=[...], marimo's frontend value is the index into the steps, not the value.
+        by_index = bool(attrs.get("steps"))
+        index = (int(initial) if initial is not None else 0) if by_index else _closest(values, initial)
+        spec.update(values=values, index=index, by_index=by_index, debounce=bool(attrs.get("debounce")),
                     show_value=bool(attrs.get("show-value")), full_width=bool(attrs.get("full-width")))
     elif kind == "matrix":
         spec.update(value=attrs.get("initial-value"), min=attrs.get("min-value"), max=attrs.get("max-value"),
@@ -137,9 +154,17 @@ def render(html: str, name_for_id: Callable[[str], str | None]) -> Rendered:
                 out.warnings.append(f"a {kind} that no notebook variable holds is shown as static")
             placeholder = soup.new_tag("div", attrs={"class": f"mb-{kind}", "data-control": name or ""})
             out.controls.append(control_spec(kind, name, attrs))
+        elif element.name == "marimo-vega" and attrs.get("spec"):
+            # mo.ui.altair_chart: drawn like a chart; its selection does not drive other cells
+            data = attrs["spec"]
+            placeholder = soup.new_tag("div", attrs={"class": "mb-chart", "data-chart": str(len(out.charts))})
+            out.charts.append(json.loads(data) if isinstance(data, str) else dict(data))
+            out.warnings.append("an altair_chart is shown as a chart; its selection is not interactive")
         else:
-            placeholder = soup.new_tag("span")
-            out.warnings.append(f"no blog version of <{element.name}>; it is left out")
+            out.warnings.append(f"no blog version of <{element.name}>; its content is shown without interaction")
+            element.unwrap()
+            wrapper.unwrap()
+            continue
         wrapper.replace_with(placeholder)
 
     for renderer in soup.find_all("marimo-mime-renderer"):
@@ -165,8 +190,8 @@ def render(html: str, name_for_id: Callable[[str], str | None]) -> Rendered:
         paragraph.name = "p"
         del paragraph["class"]
     for unknown in soup.find_all(re.compile(r"^marimo-")):
-        out.warnings.append(f"no blog version of <{unknown.name}>; it is left out")
-        unknown.decompose()
+        out.warnings.append(f"no blog version of <{unknown.name}>; its content is shown without interaction")
+        unknown.unwrap()
 
     out.html = str(soup)
     return out

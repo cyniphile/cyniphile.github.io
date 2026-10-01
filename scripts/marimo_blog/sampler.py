@@ -34,16 +34,27 @@ def _matrix_value(spec: dict, variant: int) -> list[list[float]]:
     return _clamped(value, spec)
 
 
-def _invalid_cov(spec: dict) -> list[list[float]]:
-    """A symmetric matrix that is not positive semi-definite (inside the input's limits)."""
-    value = [[float(v) for v in row] for row in spec["value"]]
-    n = len(value)
-    big = max(1.0, max(abs(value[i][i]) for i in range(n))) * 2 + 1
-    for i in range(n):
-        for j in range(n):
-            if i != j:
-                value[i][j] = big
-    return _clamped(value, spec)
+def _invalid_cov(spec: dict) -> list[list[float]] | None:
+    """A symmetric matrix that is not positive semi-definite, inside the input's limits; None if
+    the limits do not allow one (then the reader cannot reach an error state)."""
+    default = [[float(v) for v in row] for row in spec["value"]]
+    n = len(default)
+    step = _step(spec)
+    big = max(1.0, max(abs(default[i][i]) for i in range(n))) * 2 + 1
+    candidates = []
+    for diagonal in (None, step):  # the default diagonal, then the smallest positive one
+        value = [row[:] for row in default]
+        for i in range(n):
+            for j in range(n):
+                if i != j:
+                    value[i][j] = big
+                elif diagonal is not None:
+                    value[i][j] = diagonal
+        candidates.append(_clamped(value, spec))
+    for value in candidates:
+        if not rng.is_psd(value):
+            return value
+    return None
 
 
 def _step(spec: dict) -> float:
@@ -107,7 +118,17 @@ def _find_target(rendered, samples: np.ndarray) -> dict | None:
                     break
                 fields.append(match[0])
             if len(fields) == d:
-                return {"chart": number, "refs": _data_refs(chart, name), "fields": fields, "dataset": name}
+                # Other fields of the rows must be the same in each row: the browser adds them
+                extra = {}
+                for field in rows[0]:
+                    if field in fields:
+                        continue
+                    values = [r.get(field) for r in rows]
+                    if any(v != values[0] for v in values):
+                        return None
+                    extra[field] = values[0]
+                return {"chart": number, "refs": _data_refs(chart, name), "fields": fields, "extra": extra,
+                        "dataset": name}
     for number, fig in enumerate(rendered.figures):
         paths = []
         for j in range(d):
@@ -152,6 +173,11 @@ def sampler_group(builder, gid: str, group: dict) -> dict:
     if len(cells) != 1:
         raise UnsupportedGroup("matrix inputs that change more than one cell")
     cell = cells[0]
+    for name in names:
+        rows = len(controls[name]["value"] or [])
+        if rows > rng.JACOBI_MAX_SIZE:
+            # Python and the browser compute the same factor only for small matrices (Jacobi)
+            raise UnsupportedGroup(f"a {rows}-row matrix (the limit is {rng.JACOBI_MAX_SIZE})")
 
     probes = []
     for variant in (1, 2):
@@ -203,10 +229,15 @@ def sampler_group(builder, gid: str, group: dict) -> dict:
     builder.set_default(cell, default_out)
 
     call = probes[0][1]
-    s.restore(builder.base)
-    with rng.recording() as recorder:
-        s.set_value(roles["cov"], _invalid_cov(controls[roles["cov"]]), seed=rng.event_seed(gid))
-    raises = any(c.fn == "multivariate_normal" and c.error for c in recorder.calls)
+    check = call.params.get("check_valid", "warn")
+    error = None
+    invalid = _invalid_cov(controls[roles["cov"]]) if check == "raise" else None
+    if invalid is not None:
+        # The cell as marimo shows it for a matrix that is not valid (the notebook's own except
+        # branch, or the error itself if the cell does not catch it).
+        s.restore(builder.base)
+        s.set_value(roles["cov"], invalid, seed=rng.event_seed(gid))
+        error = cell_payload(builder.rendered(cell))
     return {
         "kind": "sampler",
         "cell": cell,
@@ -214,7 +245,7 @@ def sampler_group(builder, gid: str, group: dict) -> dict:
         "mean": mean,
         "cov": {"control": roles["cov"]},
         "z": O.compact(np.asarray(call.z).tolist()),
-        "check": "raise" if raises else "warn",
+        "check": check,
         "target": target,
-        "error": cell_payload(builder.rendered(cell)) if raises else None,
+        "error": error,
     }

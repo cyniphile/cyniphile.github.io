@@ -1,7 +1,8 @@
 """A small stand-in for marimo, for the cells that a blog post runs live with Pyodide.
 
-mb.js loads this module, calls configure() with the group's data (setup code, cell code, editor
-name), and run(code) after each edit. run() returns JSON: per cell, {"kind": "plotly", "figure",
+mb.js loads this module, calls configure() with the group's data (setup code, the cells to run as
+a list of [cell, code], editor name), and run(code) after each edit. The converter runs the same
+module in CPython to check a live group (scripts/marimo_blog/live.py). run() returns JSON: per cell, {"kind": "plotly", "figure",
 "config"}, {"kind": "html", "html"} or {"kind": "error", "text"}.
 """
 
@@ -73,6 +74,9 @@ def configure(spec_json):
 def _payload(out):
     if isinstance(out, _Plotly):
         figure = out.data["figure"]
+        if figure is None:
+            # marimo shows an error for mo.ui.plotly(None)
+            return {"kind": "error", "text": "mo.ui.plotly needs a Plotly figure, not None"}
         data = json.loads(figure.to_json()) if hasattr(figure, "to_json") else figure
         return {"kind": "plotly", "figure": data, "config": out.data["config"]}
     if isinstance(out, Output) and out.kind == "stack":
@@ -88,12 +92,19 @@ def _payload(out):
 
 
 def run(code):
+    """Run the cells (a list of [cell, code], in marimo's order) with the editor's new code. A cell
+    after a cell that raised does not run (as in marimo)."""
     _namespace[_spec["editor"]] = _Value(code)
     results = {}
-    for cell, cell_code in _spec["run"].items():
+    failed = False
+    for cell, cell_code in _spec["run"]:
+        if failed:
+            results[cell] = {"kind": "error", "text": "This cell did not run: an earlier cell raised an exception."}
+            continue
         try:
             results[cell] = _payload(run_cell(cell_code, _namespace))
         except Exception:
             text = traceback.format_exc(limit=-3)
             results[cell] = {"kind": "error", "text": text.replace('File "<cell>", ', "")}
+            failed = True
     return json.dumps(results)

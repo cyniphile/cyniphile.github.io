@@ -52,21 +52,24 @@ def test_reactive_slider_states(converted):
     assert set(group["states"]) == {"0", "1", "2", "3"}
     (cell, change), = group["states"]["3"].items()
     ops = change["figures"]["0"]
-    assert ops[0] == {"op": "reset"}
+    # no reset (it would remove click history that marimo keeps): each changed path is set
+    assert all(op["op"] != "reset" for op in ops)
     assert {"op": "set", "path": ["layout", "title", "text"], "value": "size=4"} in ops
+    (change,) = group["states"]["1"].values()  # back at the default value
+    assert {"op": "set", "path": ["layout", "title", "text"], "value": "size=2"} in change["figures"]["0"]
 
 
 def test_buttons(converted):
     _, _, _, model, groups = converted
     group = group_of(model, groups, "new")
     new, reset = group["buttons"]["new"], group["buttons"]["reset"]
-    assert new["kind"] == "append" and new["pool"] == 20 and new["keys"] == []
-    clicks = new["clicks"][""]
+    assert new["kind"] == "list" and new["pool"] == 20 and new["keys"] == []
+    clicks = new["table"][""]
     assert len(clicks) == 20
     (change,) = clicks[0].values()
     assert change["figures"]["0"][0]["op"] == "add"
-    assert reset == {"kind": "fixed", "ops": reset["ops"], "resets": True}
-    (change,) = reset["ops"].values()
+    assert reset["kind"] == "fixed" and reset["keys"] == [] and reset["resets"] == ["new"]
+    (change,) = reset["table"][""].values()
     assert change["figures"]["0"] == [{"op": "truncate", "n": 1}]
 
 
@@ -83,6 +86,7 @@ def test_live_editor(converted):
     _, _, _, model, groups = converted
     group = group_of(model, groups, "editor")
     assert group["kind"] == "live" and group["editor"] == "editor"
+    assert [cell for cell, _ in group["run"]] == [str(c) for c in group["cells"]]
     assert "import plotly.graph_objects as go" in group["setup"]
     assert "pandas" not in group["setup"] and "altair" not in group["setup"]
     assert any(p.startswith("plotly==") for p in group["packages"])

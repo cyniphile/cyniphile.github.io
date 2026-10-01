@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import contextlib
 import copy
+import html
 import importlib.util
 import os
 import weakref
@@ -62,6 +63,14 @@ def topological_order(cells: list[CellInfo]) -> list[int]:
         order.extend(ready)
         done.update(ready)
     return order
+
+
+class CellError:
+    """The output of a cell that raised during a simulated event (marimo shows the error)."""
+
+    def __init__(self, message: str):
+        self.message = message
+        self.text = f'<pre class="mb-error">{html.escape(message)}</pre>'
 
 
 def output_html(output) -> str | None:
@@ -232,19 +241,31 @@ class Session:
     # ---- events ----
 
     def rerun(self, names: set[str]) -> list[int]:
-        """Run again the cells that use the names, then their descendants. Return the cells run."""
-        dirty, ran = set(names), []
+        """Run again the cells that use the names, then their descendants. Return the cells run.
+
+        As in marimo, a cell that raises shows the error, and the cells that depend on it do not
+        run (they show that an ancestor raised)."""
+        dirty, failed, ran = set(names), set(), []
         with self._in_notebook_dir():
             for index in self.order:
                 cell = self.cells[index]
                 if not (cell.refs & dirty) or (cell.defs & names):
                     continue
+                ran.append(index)
+                dirty |= cell.defs
+                if cell.refs & failed:
+                    self.outputs[index] = CellError("This cell did not run: a cell that it uses raised an exception.")
+                    failed |= cell.defs
+                    continue
                 refs = {r: self.defs[r] for r in cell.refs if r in self.defs}
-                output, defs = self._cell_objects[index].run(**refs)
+                try:
+                    output, defs = self._cell_objects[index].run(**refs)
+                except Exception as error:  # noqa: BLE001 - marimo shows any exception in the cell
+                    self.outputs[index] = CellError(f"{type(error).__name__}: {error}")
+                    failed |= cell.defs
+                    continue
                 self.outputs[index] = output
                 self.defs.update(defs)
-                dirty |= cell.defs
-                ran.append(index)
         return ran
 
     def set_value(self, name: str, value, seed: int | None = None) -> list[int]:
