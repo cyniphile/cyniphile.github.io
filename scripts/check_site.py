@@ -179,7 +179,7 @@ def check_comments(site_dir: Path, slugs: set[str]) -> list[str]:
         if not page.is_file():
             continue
         is_post = page.parent != blog and page.parent.name in slugs
-        has_comments = "giscus" in page.read_text(encoding="utf-8", errors="replace")
+        has_comments = "giscus.app/client.js" in page.read_text(encoding="utf-8", errors="replace")
         if is_post and not has_comments:
             errors.append(f"{rel(page, site_dir)}: comments are missing")
         if not is_post and has_comments:

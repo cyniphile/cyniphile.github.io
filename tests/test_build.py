@@ -45,6 +45,41 @@ def test_live_notebooks_map_each_notebook_to_a_live_folder(tmp_path):
     ]
 
 
+# The giscus loader that Quarto 1.10.18 writes at the end of a post (shortened)
+GISCUS_LOADER = """<script>
+  function loadGiscus() {
+    const script = document.createElement("script");
+    script.src = "https://giscus.app/client.js";
+    script.dataset.mapping = "pathname";
+    script.dataset.lang = "en";
+    script.crossOrigin = "anonymous";
+  }
+  loadGiscus();
+</script>
+"""
+
+
+def test_lazy_giscus_adds_lazy_loading_once(tmp_path):
+    post = tmp_path / "blog/abortion/index.html"
+    other = tmp_path / "blog/about/index.html"
+    post.parent.mkdir(parents=True)
+    other.parent.mkdir(parents=True)
+    post.write_text(GISCUS_LOADER, encoding="utf-8")
+    other.write_text("no comments", encoding="utf-8")
+    assert build.lazy_giscus(tmp_path) == 1
+    assert '    script.dataset.lang = "en";\n    script.dataset.loading = "lazy";\n' in post.read_text(encoding="utf-8")
+    assert other.read_text(encoding="utf-8") == "no comments"
+    assert build.lazy_giscus(tmp_path) == 0  # a second build changes nothing
+
+
+def test_lazy_giscus_fails_when_quartos_loader_changes(tmp_path):
+    post = tmp_path / "blog/abortion/index.html"
+    post.parent.mkdir(parents=True)
+    post.write_text(GISCUS_LOADER.replace('script.dataset.lang = "en";', ""), encoding="utf-8")
+    with pytest.raises(ValueError, match="giscus loader changed"):
+        build.lazy_giscus(tmp_path)
+
+
 def test_copy_feed_copies_the_quarto_feed(tmp_path):
     (tmp_path / "blog").mkdir()
     (tmp_path / "blog/index.xml").write_text("<rss/>", encoding="utf-8")

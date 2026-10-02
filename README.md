@@ -20,10 +20,12 @@ This repo builds the full site:
 
 1. Make the folder `blog/<slug>/` with the marimo notebook `notebook.py` and the file `post.yml` (`title`, `date`, `description`, `categories`, and optionally `image`). Put the notebook's packages in its PEP 723 header (see `blog/gaussian-processes/notebook.py`).
 2. Edit the notebook with `uv run marimo edit blog/<slug>/notebook.py`.
-3. Run `uv run scripts/marimo_to_blog.py blog/<slug>`. It writes `index.qmd` and `widgets/*.json`. Do not edit these files. Read the warnings: each warning names a widget that does not act as in the notebook, or a marimo element that the blog shows without interaction.
+3. Run `uv run scripts/marimo_to_blog.py blog/<slug>`. It writes `index.qmd` and `widgets/*.json`. Do not edit these files. Read the warnings. A warning names a widget that does not act as in the notebook. A warning can also name a marimo element that the blog shows without interaction.
 4. Commit `notebook.py`, `post.yml`, `index.qmd` and `widgets/`. Push to `master`.
 
-The converter runs the notebook with marimo. It calculates the effect of each slider and button before the page loads, it records the random draws for matrix inputs (the browser calculates the samples), and it runs code editors in the browser with Pyodide. After each conversion it compares the page with the notebook. The design is in `docs/superpowers/specs/2026-10-01-marimo-to-blog-design.md`. The build also publishes each `notebook.py` as a live marimo notebook at `<post URL>/live/`, and it converts a post again when its notebook, its `post.yml` or the converter changes.
+The converter runs the notebook with marimo. It calculates the effect of each slider and button before the page loads. For matrix inputs, it records the random draws, and the browser calculates the samples. Code editors run in the browser with Pyodide. After each conversion, the converter compares the page with the notebook. The design is in `docs/superpowers/specs/2026-10-01-marimo-to-blog-design.md`.
+
+The build publishes each `notebook.py` as a live marimo notebook at `<post URL>/live/`. The build converts a post again when its notebook, its `post.yml` or the converter changes.
 
 ## Build and test the full site
 

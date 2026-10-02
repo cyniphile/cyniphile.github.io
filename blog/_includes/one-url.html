@@ -1,0 +1,8 @@
+<script>
+  // One address per page: ".../index.html" becomes ".../" before GoatCounter and giscus read it.
+  // GoatCounter counts pages by path, and giscus finds a post's comment thread by path, so each
+  // page must have one path. (The post list links to ".../index.html"; other links use ".../".)
+  if (location.pathname.endsWith("/index.html")) {
+    history.replaceState(history.state, "", location.pathname.replace(/index\.html$/, "") + location.search + location.hash);
+  }
+</script>

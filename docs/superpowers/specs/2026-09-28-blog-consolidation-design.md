@@ -118,7 +118,7 @@ The checks in section 7.1 use the same list. (Quarto `aliases` are not used. The
 ### 5.1 Kinds of post
 
 1. **Text post:** `index.qmd` with Markdown only.
-2. **Notebook post:** a marimo notebook `notebook.py` and `post.yml` (title, description, date, categories, image) in the post folder. `scripts/marimo_to_blog.py` writes `index.qmd` and `widgets/` from them; the build runs it when the notebook, `post.yml` or the converter changes. The build also exports `notebook.py` to `<post URL>/live/` in marimo's edit mode (the code is visible, and the reader can run it): the live notebook.
+2. **Notebook post:** a marimo notebook `notebook.py` and `post.yml` (title, description, date, categories, image) in the post folder. `scripts/marimo_to_blog.py` writes `index.qmd` and `widgets/` from them; the build runs it when the notebook, `post.yml` or the converter changes. The build also exports `notebook.py` to `<post URL>/live/` in marimo's run mode with the code shown (`--show-code`): the live notebook. Its cells run when the page loads. (Edit mode was used first, but in edit mode marimo does not run the cells at load, so the widgets do nothing until the reader clicks "Run all". Run mode is read-only.)
 
 ### 5.2 Widgets (changed 2026-10-01)
 
@@ -154,7 +154,7 @@ To see the full site: run `uv run scripts/build.py`, then `python -m http.server
 The same script runs on the laptop and in CI:
 1. Delete `_site/`.
 2. Run `quarto render blog`. Quarto writes `blog/_site/`. Copy it to `_site/blog/`.
-3. For each `blog/*/notebook.py`: convert it to `index.qmd` when it is out of date (before the Quarto render), and run `marimo export html-wasm --mode edit --execute` to `_site/blog/<slug>/live/index.html`.
+3. For each `blog/*/notebook.py`: convert it to `index.qmd` when it is out of date (before the Quarto render), and run `marimo export html-wasm --mode run --show-code --execute` to `_site/blog/<slug>/live/index.html` (then delete the `CLAUDE.md` that marimo writes next to it).
 4. Copy `site-root/` to `_site/`.
 5. Write the redirect pages from `scripts/redirects.py`. If a real page already exists at an old path, stop the build.
 6. Copy `_site/blog/index.xml` to `_site/blog/feed.xml`.
@@ -223,8 +223,9 @@ The GP post image for the post list and link previews is a JPEG of the chart of 
 
 ### 8.3 Comments
 
-- giscus uses GitHub Discussions in `cyniphile.github.io`, with the mapping `pathname`. Comments show on posts only.
-- The 3 comments on the election fraud post move: transfer issue #17 from `blog` to `cyniphile.github.io`, convert it to a discussion, and set its title to the pathname of the new post.
+- giscus uses GitHub Discussions in `cyniphile.github.io`, with the mapping `pathname`. Comments show on posts only. The comment frame loads when the reader comes near it (the build adds lazy loading: Quarto 1.10.18 ignores the option).
+- Each page has one path: a script in the page head changes `.../index.html` to `.../` before GoatCounter and giscus read it (the post list links to `.../index.html`). giscus's thread title for a post is its path without the first slash, for example `blog/voter-fraud/`.
+- The 3 comments on the election fraud post move: transfer issue #17 from `blog` to `cyniphile.github.io`, convert it to a discussion, and set its title to `blog/voter-fraud/`.
 
 ### 8.4 Landing page
 
@@ -292,4 +293,4 @@ The owner approves each change to GitHub settings and each action on an external
 | GitHub serves a project site before a folder of the user site. | The cutover order handles this. Check after step 4. |
 | Large widget data delays the first text. | The converter writes widget data to `widgets/*.json`; the runtime loads it near the screen. |
 | Each marimo export copies approximately 29 MB of frontend files. | No action for one notebook. Look again if the site gets more live notebooks. |
-| The giscus mapping does not find the moved discussion. | Set the discussion title to the exact pathname. |
+| The giscus mapping does not find the moved discussion. | Set the discussion title to the exact giscus term `blog/voter-fraud/`. |

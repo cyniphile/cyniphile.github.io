@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import shutil
 import subprocess
 import sys
@@ -64,6 +65,28 @@ def pin_katex(site_dir: Path) -> int:
     return changed
 
 
+# The last data line of Quarto's giscus loader (Quarto 1.10.18, formats/html/giscus/giscus.ejs)
+GISCUS_LANG_LINE = re.compile(r'^([ \t]*)script\.dataset\.lang = "[^"]*";$', re.MULTILINE)
+
+
+def lazy_giscus(site_dir: Path) -> int:
+    """Quarto 1.10.18 ignores the giscus option "loading: lazy". Add it to Quarto's giscus loader
+    in every page under blog/, so the comment frame loads when the reader comes near it.
+
+    Return the number of pages that changed."""
+    changed = 0
+    for page in sorted((site_dir / "blog").rglob("*.html")):
+        text = page.read_text(encoding="utf-8", newline="")
+        if "giscus.app/client.js" not in text or "script.dataset.loading" in text:
+            continue
+        lazy, count = GISCUS_LANG_LINE.subn(r'\g<0>\n\1script.dataset.loading = "lazy";', text)
+        if count != 1:
+            raise ValueError(f"{page}: Quarto's giscus loader changed; cannot add lazy loading")
+        page.write_text(lazy, encoding="utf-8", newline="")
+        changed += 1
+    return changed
+
+
 def copy_feed(site_dir: Path) -> None:
     """Keep the old feed URL /blog/feed.xml for current RSS subscribers."""
     feed = site_dir / "blog" / "index.xml"
@@ -81,6 +104,7 @@ def build(root: Path = ROOT) -> int:
     run(["quarto", "render", "blog"], cwd=root)
     copy_tree(blog / "_site", site / "blog")
     pin_katex(site)
+    lazy_giscus(site)
     for src, out in live_notebooks(blog, site):
         run(
             # run mode with the code shown: the cells run when the page loads (edit mode waits for

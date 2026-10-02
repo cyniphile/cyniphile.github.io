@@ -41,6 +41,7 @@ format:
     # in head.html start with "/../img/", which Quarto changes to "../../img/"
     # (from a post), a path to /img/ of the whole site.
     include-in-header:
+      - _includes/one-url.html  # first: it must run before GoatCounter and giscus
       - _includes/goatcounter.html
       - _includes/head.html
     include-before-body: _includes/header.html
@@ -52,7 +53,9 @@ execute:
 
 # Comments on posts (giscus: GitHub Discussions of this repo, category Announcements). The IDs
 # are the values that the configurator on giscus.app gives. Pages that are not posts set
-# "comments: false"; scripts/check_site.py checks both.
+# "comments: false"; scripts/check_site.py checks both. The thread of a post is its path, for
+# example "blog/abortion/" (_includes/one-url.html gives each page one path). Quarto 1.10.18
+# ignores "loading: lazy", so scripts/build.py adds lazy loading to Quarto's giscus loader.
 comments:
   giscus:
     repo: cyniphile/cyniphile.github.io
@@ -61,4 +64,3 @@ comments:
     category-id: "DIC_kwDOAYpdks4DG2a6"
     mapping: pathname
     reactions-enabled: true
-    loading: lazy
