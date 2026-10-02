@@ -1,4 +1,4 @@
-// Pure functions of the blog widget runtime (no DOM). Tests: mb-core.test.mjs (node --test).
+// Pure functions of the blog widget runtime (no DOM). Tests: tests/test_marimo_blog_js.py (node).
 // The Python twins are in scripts/marimo_blog (ops.py: applyOps, rng.py: jacobiEigh/isPsd/
 // sqrtFactor/mvnSamples); both sides must give the same results.
 

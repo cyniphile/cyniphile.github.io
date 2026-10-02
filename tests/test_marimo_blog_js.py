@@ -1,6 +1,7 @@
 """The browser runtime's pure functions (mb-core.js) give the same results as the Python side."""
 
 import json
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -30,7 +31,9 @@ process.stdin.on("end", () => {
 });
 """
 
-pytestmark = pytest.mark.skipif(shutil.which("node") is None, reason="node is not installed")
+# Locally the tests need node; in CI (GitHub sets CI=true) they must run, so they are not skipped.
+pytestmark = pytest.mark.skipif(shutil.which("node") is None and not os.environ.get("CI"),
+                                reason="node is not installed")
 
 COVS = [
     [[1.0, 0.0], [0.0, 1.0]],
