@@ -22,6 +22,20 @@ def no_notebook_conversion(monkeypatch):
     monkeypatch.setattr(build.marimo_to_blog, "up_to_date", lambda post: True)
 
 
+REAL_FETCH_PYODIDE_LOCK = build.fetch_pyodide_lock
+
+
+@pytest.fixture(autouse=True)
+def no_network(monkeypatch):
+    """The build fetches Pyodide's lock file from wasm.marimo.app; the tests use a local one."""
+    def fake_lock(directory):
+        path = directory / "pyodide-lock.json"
+        path.write_text('{"packages": {}}', encoding="utf-8")
+        return path
+
+    monkeypatch.setattr(build, "fetch_pyodide_lock", fake_lock)
+
+
 def fake_repo(root: Path) -> Path:
     (root / "blog/gaussian-processes").mkdir(parents=True)
     (root / "blog/gaussian-processes/notebook.py").write_text("", encoding="utf-8")
@@ -112,6 +126,8 @@ FEED = """<?xml version="1.0" encoding="UTF-8"?>
 <div class="mb-cell" data-cell="4"><div class="mb-plot" data-fig="0"></div></div>
 <p>More text.</p>
 <div class="mb-cell" data-cell="5"><div><div class="mb-slider" data-control="s"></div></div></div>
+<div class="mb-cell" data-cell="6"><style>.answer { color: white; }</style><p class="answer">Answer: yes</p></div>
+<div class="mb-cell" data-cell="7"><p>Caption</p><div class="mb-chart" data-chart="0"></div><video poster="p.png" src="v.mp4"></video><img srcset="a.png 1x, b.png 2x"></div>
 ]]></description>
 </item>
 </channel></rss>
@@ -129,9 +145,15 @@ def test_clean_feed_removes_page_parts_and_links_the_figures(tmp_path):
         assert gone not in description, gone
     post = "https://www.lukeschiefelbein.com/blog/gaussian-processes/"
     note = f'<a href="{post}">Interactive figure: open the post to see it.</a>'
-    assert description.count(note) == 2  # one for the two islands in a row, one for the last island
+    # one link for the two figure-only islands in a row; the slider-only island goes; the text-only
+    # island keeps its text without its style; the mixed island keeps its caption and gets a link
+    assert description.count(note) == 2
+    assert "Answer: yes" in description and "<style" not in description
+    assert description.index("Caption") < description.rindex(note)
     assert f'href="{post}live/"' in description and 'href="#refs"' in description
     assert f'src="{post}gp.jpg"' in description
+    assert f'poster="{post}p.png"' in description and f'src="{post}v.mp4"' in description
+    assert f'srcset="{post}a.png 1x, {post}b.png 2x"' in description
     assert text.startswith('<?xml version="1.0"') and "<title>GP</title>" in text
 
 
@@ -151,6 +173,17 @@ def test_tag_live_page_adds_the_one_path_script_then_goatcounter(tmp_path):
     build.tag_live_page(page, build.ROOT / "blog/_includes")
     text = page.read_text(encoding="utf-8")
     assert text.index("history.replaceState") < text.index("data-goatcounter") < text.index("</head>")
+
+
+def test_the_build_stops_when_pyodides_lock_file_cannot_be_fetched(tmp_path, monkeypatch):
+    from marimo._utils import requests as marimo_requests
+
+    def offline(*args, **kwargs):
+        raise OSError("network is down")
+
+    monkeypatch.setattr(marimo_requests, "get", offline)
+    with pytest.raises(RuntimeError, match="cannot fetch Pyodide's lock file"):
+        REAL_FETCH_PYODIDE_LOCK(tmp_path)
 
 
 def test_copy_feed_copies_the_quarto_feed(tmp_path):
@@ -193,7 +226,7 @@ def test_build_runs_all_steps_in_order(tmp_path, monkeypatch):
     (root / "_site/stale.html").write_text("old", encoding="utf-8")
     calls = []
 
-    def fake_run(cmd, cwd):
+    def fake_run(cmd, cwd, env=None):
         calls.append(cmd[2:4] if cmd[:3] == build.MARIMO else cmd[:2])
         if cmd[:2] == ["quarto", "render"]:
             fake_quarto_output(root)
@@ -215,16 +248,18 @@ def test_build_exports_live_notebooks_that_run_at_load_and_show_code(tmp_path, m
     root = fake_repo(tmp_path)
     exports = []
 
-    def fake_run(cmd, cwd):
+    def fake_run(cmd, cwd, env=None):
         if cmd[:2] == ["quarto", "render"]:
             fake_quarto_output(root)
         if fake_marimo_export(cmd):
-            exports.append(cmd)
+            exports.append((cmd, env))
 
     monkeypatch.setattr(build, "run", fake_run)
     monkeypatch.setattr(build.check_site, "main", lambda argv: 0)
     assert build.build(root) == 0
-    (cmd,) = exports
+    ((cmd, env),) = exports
+    # the browser's package pins come from Pyodide's lock file, fetched by the build
+    assert Path(env["MARIMO_PYODIDE_LOCK_FILE"]).name == "pyodide-lock.json"
     # edit mode waits for "Run all" before any cell runs; run mode runs the cells at load.
     # --no-sandbox: the export uses this environment (uv.lock) and does not edit notebook.py.
     assert cmd[cmd.index("--mode") + 1] == "run" and {"--show-code", "--execute", "--no-sandbox"} <= set(cmd)
@@ -236,7 +271,7 @@ def test_build_exports_live_notebooks_that_run_at_load_and_show_code(tmp_path, m
 def test_build_pins_the_katex_version_in_the_copied_blog(tmp_path, monkeypatch):
     root = fake_repo(tmp_path)
 
-    def fake_run(cmd, cwd):
+    def fake_run(cmd, cwd, env=None):
         if cmd[0] == "quarto":
             fake_quarto_output(root)
             (root / "blog/_site/math").mkdir()
@@ -256,7 +291,7 @@ def test_build_pins_the_katex_version_in_the_copied_blog(tmp_path, monkeypatch):
 def test_build_returns_1_when_a_check_fails(tmp_path, monkeypatch):
     root = fake_repo(tmp_path)
 
-    def fake_run(cmd, cwd):
+    def fake_run(cmd, cwd, env=None):
         if cmd[0] == "quarto":
             fake_quarto_output(root)
         fake_marimo_export(cmd)
@@ -269,7 +304,7 @@ def test_build_returns_1_when_a_check_fails(tmp_path, monkeypatch):
 def test_build_stops_when_a_command_fails(tmp_path, monkeypatch):
     root = fake_repo(tmp_path)
 
-    def failing_run(cmd, cwd):
+    def failing_run(cmd, cwd, env=None):
         raise subprocess.CalledProcessError(1, cmd)
 
     monkeypatch.setattr(build, "run", failing_run)
@@ -283,7 +318,7 @@ def test_build_stops_when_site_delete_fails(tmp_path, monkeypatch):
     (root / "_site").mkdir()
     calls = []
 
-    def fake_run(cmd, cwd):
+    def fake_run(cmd, cwd, env=None):
         calls.append(cmd[:2])
 
     def failing_rmtree(path, ignore_errors=False):

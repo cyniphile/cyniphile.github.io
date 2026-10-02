@@ -11,6 +11,8 @@ from pathlib import Path
 from urllib.parse import unquote, urlsplit
 from xml.etree import ElementTree
 
+from bs4 import BeautifulSoup
+
 from redirects import REDIRECTS, output_file
 
 MAX_PAGE_BYTES = 1_500_000
@@ -201,10 +203,10 @@ def check_feed(site_dir: Path) -> list[str]:
             continue
         for item in ElementTree.parse(feed).getroot().iter("item"):
             title = item.findtext("title") or "?"
-            description = item.findtext("description") or ""
-            for part, text in (("site-header", "the site header"), ("<script", "a script"),
-                               ('class="mb-cell"', "an interactive island")):
-                if part in description:
+            content = BeautifulSoup(item.findtext("description") or "", "html.parser")
+            for selector, text in (("header.site-header", "the site header"), ("script", "a script"),
+                                   ("div.mb-cell", "an interactive island")):
+                if content.select_one(selector):
                     errors.append(f"blog/{name}: item {title!r} has {text}")
     return errors
 

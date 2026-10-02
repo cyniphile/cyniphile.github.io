@@ -154,7 +154,7 @@ To see the full site: run `uv run scripts/build.py`, then `python -m http.server
 The same script runs on the laptop and in CI:
 1. Delete `_site/`.
 2. Run `quarto render blog`. Quarto writes `blog/_site/`. Copy it to `_site/blog/`. Pin the KaTeX version, add lazy loading to Quarto's giscus loader, and list each page in `sitemap.xml` with its `.../` URL (Quarto writes `.../index.html`).
-3. For each `blog/*/notebook.py`: convert it to `index.qmd` when it is out of date (before the Quarto render), and run `marimo export html-wasm --mode run --show-code --execute --no-sandbox` (with the Python of the build, so the versions come from `uv.lock` and marimo does not edit `notebook.py`) to `_site/blog/<slug>/live/index.html`. Then delete the `CLAUDE.md` that marimo writes next to it, and add the one-path script and the GoatCounter tag to the page.
+3. For each `blog/*/notebook.py`: convert it to `index.qmd` when it is out of date (before the Quarto render), and run `marimo export html-wasm --mode run --show-code --execute --no-sandbox` to `_site/blog/<slug>/live/index.html`. The export runs with the Python of the build: the preview runs with the versions of `uv.lock`, and marimo does not edit `notebook.py`. The package versions that the reader's browser installs come from Pyodide's lock file: the build fetches it from `wasm.marimo.app` first and stops when it cannot (without it, marimo would pin versions that Pyodide cannot install). Then delete the `CLAUDE.md` that marimo writes next to it, and add the one-path script and the GoatCounter tag to the page.
 4. Copy `site-root/` to `_site/`.
 5. Write the redirect pages from `scripts/redirects.py`. If a real page already exists at an old path, stop the build. A redirect page keeps the fragment of the old link (`#section`); the old Topics links (`#<category>`) open the new Topics filter (`#category=<category>`).
 6. Clean the feed items for feed readers: no site header, scripts or styles; each interactive figure is a link to the post; relative links become absolute. Copy `_site/blog/index.xml` to `_site/blog/feed.xml`.
@@ -182,7 +182,9 @@ The same script runs on the laptop and in CI:
 - For each post, the HTML with its local scripts, styles and data is less than 1.5 MB compressed.
 - Each image in `blog/` is less than 300 KB.
 - The RSS feed contains all posts and no other pages. (The feed has the same items as the post list.)
-- Comments show on posts and on no other page.
+- The feed items have no site header, no scripts and no interactive islands.
+- Comments show on posts and on no other page. The comment frame loads lazily.
+- In each blog page with the GoatCounter tag, the one-path script comes before the tag. Each live notebook has the tag.
 
 ### 7.2 Manual, before the cutover
 

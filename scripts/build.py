@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import html
+import os
 import re
 import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from urllib.parse import urljoin
 
@@ -22,9 +24,9 @@ KATEX_VERSION = "0.18.9"
 MARIMO = [sys.executable, "-m", "marimo"]
 
 
-def run(cmd: list[str], cwd: Path) -> None:
+def run(cmd: list[str], cwd: Path, env: dict[str, str] | None = None) -> None:
     print("+", " ".join(cmd), flush=True)
-    subprocess.run(cmd, cwd=cwd, check=True)
+    subprocess.run(cmd, cwd=cwd, check=True, env=env)
 
 
 def live_notebooks(blog_dir: Path, site_dir: Path) -> list[tuple[Path, Path]]:
@@ -101,25 +103,46 @@ FEED_NOTE = '<p class="mb-feed-note"><em><a href="{url}">Interactive figure: ope
 def clean_feed_html(content: str, link: str) -> str:
     """One feed item's HTML, for a feed reader (no JavaScript, no site styles): without the site
     header (include-before-body puts it inside <main>, which Quarto copies), scripts, stylesheets
-    and comments; each interactive island (div.mb-cell, drawn by JavaScript) becomes a link to the
-    post (one link for islands in a row); relative links become absolute (from the item link)."""
+    and comments. In each island of a converted notebook (div.mb-cell): the controls and styles
+    go; a figure or chart (drawn by JavaScript) becomes a link to the post; an island with only
+    figures becomes one link (one link for such islands in a row), and its text stays otherwise.
+    Relative links become absolute (from the item link)."""
     soup = BeautifulSoup(content, "html.parser")
+
+    def note():
+        return BeautifulSoup(FEED_NOTE.format(url=html.escape(link, quote=True)), "html.parser")
+
     for element in soup.select("header.site-header, script, link[rel=stylesheet]"):
         element.decompose()
     for comment in soup.find_all(string=lambda s: isinstance(s, Comment)):
         comment.extract()
     for cell in soup.select("div.mb-cell"):
-        cell.replace_with(BeautifulSoup(FEED_NOTE.format(url=html.escape(link, quote=True)), "html.parser"))
-    for note in soup.select("p.mb-feed-note"):
-        node = note.previous_sibling
+        for element in cell.select("style, [data-control]"):
+            element.decompose()
+        parts = cell.select(".mb-plot, .mb-chart")
+        if cell.get_text(strip=True):
+            for part in parts:
+                part.replace_with(note())
+            cell.unwrap()
+        elif parts:
+            cell.replace_with(note())
+        else:
+            cell.decompose()
+    for link_note in soup.select("p.mb-feed-note"):
+        node = link_note.previous_sibling
         while isinstance(node, NavigableString) and not node.strip():
             node = node.previous_sibling
         if isinstance(node, Tag) and "mb-feed-note" in (node.get("class") or []):
-            note.decompose()
-    for tag, attribute in (("a", "href"), ("img", "src")):
-        for element in soup.find_all(tag, attrs={attribute: True}):
-            if not element[attribute].startswith("#"):
-                element[attribute] = urljoin(link, element[attribute])
+            link_note.decompose()
+    for element in soup.find_all(True):
+        for attribute in ("href", "src", "poster"):
+            value = element.get(attribute)
+            if value and not value.startswith(("#", "data:", "mailto:")):
+                element[attribute] = urljoin(link, value)
+        if element.get("srcset"):
+            element["srcset"] = ", ".join(
+                " ".join([urljoin(link, part.split()[0]), *part.split()[1:]])
+                for part in element["srcset"].split(",") if part.strip())
     return str(soup).strip()
 
 
@@ -152,6 +175,25 @@ def slash_sitemap(site_dir: Path) -> None:
     sitemap.write_text(re.sub(r"/index\.html</loc>", "/</loc>", text), encoding="utf-8")
 
 
+def fetch_pyodide_lock(directory: Path) -> Path:
+    """marimo's export pins the live notebook's packages to the versions in Pyodide's lock file,
+    which it fetches from wasm.marimo.app. When it cannot fetch the file, it pins the versions of
+    this environment instead, with no message, and Pyodide cannot install some of them: the live
+    notebook breaks. So the build fetches the file first (as marimo does), stops when it cannot,
+    and gives the file to the export (MARIMO_PYODIDE_LOCK_FILE)."""
+    from marimo._pyodide.pyodide_constraints import _LOCKFILE_URL
+    from marimo._utils import requests as marimo_requests
+
+    try:
+        data = marimo_requests.get(_LOCKFILE_URL, timeout=60).raise_for_status().content
+    except Exception as error:  # noqa: BLE001 - any failure stops the build with this message
+        raise RuntimeError(f"cannot fetch Pyodide's lock file {_LOCKFILE_URL} ({error}); "
+                           f"the live notebooks need it") from error
+    path = directory / "pyodide-lock.json"
+    path.write_bytes(data)
+    return path
+
+
 def tag_live_page(page: Path, includes: Path) -> None:
     """Add the one-path script and the GoatCounter tag (blog/_includes) to a live notebook page."""
     head = (includes / "one-url.html").read_text(encoding="utf-8") + (includes / "goatcounter.html").read_text(encoding="utf-8")
@@ -180,18 +222,23 @@ def build(root: Path = ROOT) -> int:
     pin_katex(site)
     lazy_giscus(site)
     slash_sitemap(site)
-    for src, out in live_notebooks(blog, site):
-        run(
-            # run mode with the code shown: the cells run when the page loads (edit mode waits for
-            # "Run all", so a button does nothing), and the reader sees the code. --no-sandbox: the
-            # preview runs in this environment (uv.lock), and marimo does not edit notebook.py.
-            [*MARIMO, "export", "html-wasm", str(src), "--mode", "run", "--show-code", "--execute",
-             "--no-sandbox", "-o", str(out), "-f"],
-            cwd=root,
-        )
-        # marimo also writes CLAUDE.md (a prompt for AI assistants) next to the page: not for the site
-        (out.parent / "CLAUDE.md").unlink(missing_ok=True)
-        tag_live_page(out, blog / "_includes")
+    notebooks = live_notebooks(blog, site)
+    with tempfile.TemporaryDirectory() as tmp:
+        env = {**os.environ, "MARIMO_PYODIDE_LOCK_FILE": str(fetch_pyodide_lock(Path(tmp)))} if notebooks else None
+        for src, out in notebooks:
+            run(
+                # run mode with the code shown: the cells run when the page loads (edit mode waits
+                # for "Run all", so a button does nothing), and the reader sees the code.
+                # --no-sandbox: the preview runs in this environment (uv.lock), and marimo does not
+                # edit notebook.py. The browser's package pins come from Pyodide's lock file.
+                [*MARIMO, "export", "html-wasm", str(src), "--mode", "run", "--show-code", "--execute",
+                 "--no-sandbox", "-o", str(out), "-f"],
+                cwd=root,
+                env=env,
+            )
+            # marimo also writes CLAUDE.md (a prompt for AI assistants) next to the page
+            (out.parent / "CLAUDE.md").unlink(missing_ok=True)
+            tag_live_page(out, blog / "_includes")
     copy_tree(root / "site-root", site)
     write_redirects(site)
     clean_feed(site)

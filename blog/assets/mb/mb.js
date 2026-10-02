@@ -10,7 +10,7 @@ const figures = new Map(); // "cell:n" → { div, fig, config }
 const defaults = new Map(); // "cell:n" → the figure at page load
 const charts = new Map(); // "cell:n" → Promise of a Vega view
 const originals = new Map(); // cell → { html, figures, charts } at page load
-const groupData = new Map(); // gid → Promise of the group's data
+const groupData = new Map(); // gid → Download of the group's data
 const groupState = new Map(); // gid → { index, clicks, values, error, queue }
 
 // ---- libraries ----
@@ -22,39 +22,55 @@ const BUNDLE_TYPES = {
   cartesian: ["bar", "box", "contour", "heatmap", "histogram", "histogram2d", "histogram2dcontour",
     "image", "pie", "scatter", "scatterternary", "violin"],
 };
-// A download that fails (for example a short network drop on a phone) is tried again on the next
-// call: the cached promise goes away when it rejects.
-function retrying(promise, forget) {
-  return promise.catch((error) => {
-    forget();
-    throw error;
-  });
+// A shared download that is tried again after a failure (for example a short network drop on a
+// phone). One attempt runs at a time, and the callers share it. After a failure, calls fail at
+// once (no new request) for a pause: 3 s, doubled after each failure, at most 60 s.
+class Download {
+  constructor(start) {
+    this.start = start; // (tries) => Promise
+    this.promise = null;
+    this.failedAt = 0;
+    this.pause = 0;
+    this.tries = 0;
+  }
+
+  get() {
+    if (this.promise) return this.promise;
+    if (Date.now() - this.failedAt < this.pause) {
+      return Promise.reject(new Error("a download failed; it is tried again after a pause"));
+    }
+    this.promise = this.start(this.tries).then((value) => {
+      this.pause = 0;
+      return value;
+    }, (error) => {
+      this.promise = null;
+      this.failedAt = Date.now();
+      this.pause = Math.min(60000, Math.max(3000, this.pause * 2));
+      this.tries += 1;
+      throw error;
+    });
+    return this.promise;
+  }
 }
 
-let plotlyPromise, plotlyBundle, plotlyTries = 0;
-function plotlyUrl(bundle) {
+function plotlyUrl(bundle, tries) {
   // a new URL after a failure: the browser keeps a failed module import for its URL
-  const again = plotlyTries ? `?try=${plotlyTries}` : "";
+  const again = tries ? `?try=${tries}` : "";
   return `https://cdn.plot.ly/plotly-${bundle === "full" ? "" : `${bundle}-`}${MODEL.plotly}.min.js${again}`;
 }
+const plotlyDownloads = {};
+let plotlyFull = false; // a figure has a trace type that the page's bundle does not have
 function loadPlotly(types = []) {
   const bundle = MODEL.plotlyBundle || "full";
-  const missing = bundle !== "full" && types.some((t) => !BUNDLE_TYPES[bundle].includes(t));
-  const forget = () => {
-    plotlyPromise = null;
-    plotlyBundle = undefined;
-    plotlyTries += 1;
-  };
-  if (missing && plotlyBundle !== "full") {
-    plotlyBundle = "full";
-    plotlyPromise = retrying((plotlyPromise || Promise.resolve()).then(() => import(plotlyUrl("full")))
-      .then(() => window.Plotly), forget);
-  }
-  if (!plotlyPromise) {
-    plotlyBundle = bundle;
-    plotlyPromise = retrying(import(plotlyUrl(bundle)).then(() => window.Plotly), forget);
-  }
-  return plotlyPromise;
+  if (bundle !== "full" && types.some((t) => !BUNDLE_TYPES[bundle].includes(t))) plotlyFull = true;
+  const name = plotlyFull ? "full" : bundle;
+  plotlyDownloads[name] ??= new Download(async (tries) => {
+    // the full bundle loads after the smaller one, so that it sets window.Plotly last
+    if (name !== bundle) await plotlyDownloads[bundle]?.promise?.catch(() => {});
+    await import(plotlyUrl(name, tries));
+    return window.Plotly;
+  });
+  return plotlyDownloads[name].get();
 }
 
 function loadScript(src) {
@@ -62,51 +78,49 @@ function loadScript(src) {
     const script = document.createElement("script");
     script.src = src;
     script.onload = resolve;
-    script.onerror = () => reject(new Error(`cannot load ${src}`));
+    script.onerror = () => {
+      script.remove();
+      reject(new Error(`cannot load ${src}`));
+    };
     document.head.append(script);
   });
 }
 
 // Exact versions (as for KaTeX and Plotly): a new release must not change the charts.
-let vegaPromise;
-function loadVega() {
-  vegaPromise ??= retrying((async () => {
-    await loadScript("https://cdn.jsdelivr.net/npm/vega@6.4.0");
-    await loadScript("https://cdn.jsdelivr.net/npm/vega-lite@6.4.3");
-    await loadScript("https://cdn.jsdelivr.net/npm/vega-embed@7.3.0");
-    return window.vegaEmbed;
-  })(), () => (vegaPromise = null));
-  return vegaPromise;
-}
+const vegaDownload = new Download(async () => {
+  await loadScript("https://cdn.jsdelivr.net/npm/vega@6.4.0");
+  await loadScript("https://cdn.jsdelivr.net/npm/vega-lite@6.4.3");
+  await loadScript("https://cdn.jsdelivr.net/npm/vega-embed@7.3.0");
+  return window.vegaEmbed;
+});
+const loadVega = () => vegaDownload.get();
 
 // Math in control labels (span.mb-math) and in replaced cells (span.math). Quarto's KaTeX script
 // renders the page's span.math at DOMContentLoaded and stops at a span that is rendered already,
 // so this waits until it ran. KaTeX loads here when the page has no other math (Quarto then does
 // not load it).
 const KATEX = "https://cdn.jsdelivr.net/npm/katex@0.18.9/dist"; // as KATEX_VERSION in scripts/build.py
-let katexPromise;
-function loadKatex() {
-  katexPromise ??= retrying((async () => {
-    if (document.readyState === "loading") {
-      await new Promise((resolve) => document.addEventListener("DOMContentLoaded", resolve, { once: true }));
-    }
-    await new Promise((resolve) => setTimeout(resolve));
-    if (!window.katex) {
+const katexDownload = new Download(async () => {
+  if (document.readyState === "loading") {
+    await new Promise((resolve) => document.addEventListener("DOMContentLoaded", resolve, { once: true }));
+  }
+  await new Promise((resolve) => setTimeout(resolve));
+  if (!window.katex) {
+    if (!document.querySelector(`link[href="${KATEX}/katex.min.css"]`)) {
       const link = document.createElement("link");
       link.rel = "stylesheet";
       link.href = `${KATEX}/katex.min.css`;
       document.head.append(link);
-      await loadScript(`${KATEX}/katex.min.js`);
     }
-    return window.katex;
-  })(), () => (katexPromise = null));
-  return katexPromise;
-}
+    await loadScript(`${KATEX}/katex.min.js`);
+  }
+  return window.katex;
+});
 
 function renderMath(root) {
   const todo = (span) => !span.dataset.mbMath && !span.querySelector(".katex");
   if (![...root.querySelectorAll("span.mb-math, span.math")].some(todo)) return;
-  loadKatex().then((katex) => {
+  katexDownload.get().then((katex) => {
     for (const span of root.querySelectorAll("span.mb-math, span.math")) {
       if (!todo(span)) continue;
       span.dataset.mbMath = "1";
@@ -117,16 +131,13 @@ function renderMath(root) {
 
 // Plotly draws "$...$" text (legends, titles) with MathJax, as in marimo. MathJax loads only for
 // figures that have such text, and it does not typeset the page (KaTeX does the page's math).
-let mathJaxPromise;
-function loadMathJax() {
-  mathJaxPromise ??= (async () => {
-    window.MathJax = { startup: { typeset: false } };
-    window.PlotlyConfig = { MathJaxConfig: "local" };
-    await loadScript("https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js");
-    await window.MathJax.startup.promise;
-  })();
-  return mathJaxPromise;
-}
+const mathJaxDownload = new Download(async () => {
+  window.MathJax = { startup: { typeset: false } };
+  window.PlotlyConfig = { MathJaxConfig: "local" };
+  await loadScript("https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js");
+  await window.MathJax.startup.promise;
+});
+const loadMathJax = () => mathJaxDownload.get();
 
 function hasTex(value) {
   if (typeof value === "string") return value.length > 1 && value.startsWith("$") && value.endsWith("$");
@@ -165,9 +176,10 @@ function queueDraw(task) {
 }
 
 // After a failed drawing (the library did not load), draw again when the element comes near the
-// screen again, a few seconds later (not at once: the network can still be down).
+// screen again, after a pause (3 s, doubled after each failure of this element, at most 60 s).
 function drawLater(div, show) {
-  setTimeout(() => whenNear(div, show), 3000);
+  div.mbPause = Math.min(60000, (div.mbPause || 1500) * 2);
+  setTimeout(() => whenNear(div, show), div.mbPause);
 }
 
 // A figure has at most one queued redraw; it draws the latest JSON (a slider drag changes a
@@ -183,6 +195,7 @@ function drawFigure(key) {
     if (hasTex(entry.fig)) await loadMathJax();
     const Plotly = await loadPlotly((entry.fig.data || []).map((trace) => trace.type || "scatter"));
     await Plotly.react(entry.div, entry.fig.data || [], entry.fig.layout || {}, entry.config);
+    entry.div.mbPause = 0;
   });
   entry.pending.catch(() => {
     entry.pending = null;
@@ -195,16 +208,28 @@ function drawFigure(key) {
   return entry.pending;
 }
 
+// charts: "cell:n" → a promise of the Vega view. When a draw fails, the promise rejects (an event
+// that waits for the chart fails and shows its note) and a new one waits for the next draw.
 function drawChart(key, div, spec) {
-  let resolveView;
-  charts.set(key, new Promise((resolve) => (resolveView = resolve)));
+  let settle;
+  const waitForView = () => {
+    const view = new Promise((resolve, reject) => (settle = { resolve, reject }));
+    view.catch(() => {}); // a failure that no event waits for is not an error
+    charts.set(key, view);
+  };
+  waitForView();
   div.style.minHeight = `${(spec.height ?? 300) + 50}px`;
   const show = () => queueDraw(async () => {
     const vegaEmbed = await loadVega();
     const result = await vegaEmbed(div, core.resolve(spec, tables), { renderer: "canvas" });
     div.style.minHeight = "";
-    resolveView(result.view);
-  }).catch(() => drawLater(div, show));
+    div.mbPause = 0;
+    settle.resolve(result.view);
+  }).catch((error) => {
+    settle.reject(error);
+    waitForView();
+    drawLater(div, show);
+  });
   whenNear(div, show);
 }
 
@@ -273,13 +298,14 @@ function applyEffect(effect, tablesForGroup) {
 function loadGroup(gid) {
   if (!groupData.has(gid)) {
     const info = MODEL.groups[gid];
-    groupData.set(gid, retrying(fetch(new URL(info.src, document.baseURI)).then((r) => {
-      if (!r.ok) throw new Error(`cannot load ${info.src}`);
-      return r.json();
-    }).then((data) => ({ data, tables: { ...tables, arrays: data.arrays || {}, pools: data.pools || {} } })),
-    () => groupData.delete(gid)));
+    groupData.set(gid, new Download(async () => {
+      const response = await fetch(new URL(info.src, document.baseURI));
+      if (!response.ok) throw new Error(`cannot load ${info.src}`);
+      const data = await response.json();
+      return { data, tables: { ...tables, arrays: data.arrays || {}, pools: data.pools || {} } };
+    }));
   }
-  return groupData.get(gid);
+  return groupData.get(gid).get();
 }
 
 // A short note in the widget when an event fails (most often: its data did not load). The next
@@ -401,9 +427,9 @@ async function samplerEvent(group, state, name, value) {
 
 // ---- live code (Pyodide) ----
 
-let pythonPromise;
+let pythonDownload;
 function loadPython(data, status) {
-  pythonPromise ??= retrying((async () => {
+  pythonDownload ??= new Download(async () => {
     status("Loading Python (first run only)…");
     await loadScript(`https://cdn.jsdelivr.net/pyodide/v${data.pyodide}/full/pyodide.js`);
     const py = await window.loadPyodide();
@@ -412,15 +438,21 @@ function loadPython(data, status) {
     py.FS.writeFile("/home/pyodide/mb_live.py", shim);
     py.runPython("import sys; sys.path.insert(0, '/home/pyodide'); import mb_live");
     return py;
-  })(), () => (pythonPromise = null));
-  return pythonPromise;
+  });
+  return pythonDownload.get();
 }
 
 async function liveEvent(group, state, name, value) {
   const data = group.data;
   const editorEl = document.querySelector(`[data-control="${name}"]`);
   const status = (text) => { editorEl.querySelector(".mb-editor-status").textContent = text; };
-  const py = await loadPython(data, status);
+  let py;
+  try {
+    py = await loadPython(data, status);
+  } catch (error) {
+    status(""); // the widget's failure note says what happened
+    throw error;
+  }
   if (!state.ready) {
     status("Installing packages…");
     const micropip = py.pyimport("micropip");
@@ -647,7 +679,8 @@ function start() {
   const observer = new IntersectionObserver((entries) => {
     for (const entry of entries) {
       if (!entry.isIntersecting) continue;
-      for (const gid of groupsOfCell.get(entry.target.dataset.cell) || []) loadGroup(gid);
+      // load early; a failure here is tried again at the reader's first event
+      for (const gid of groupsOfCell.get(entry.target.dataset.cell) || []) loadGroup(gid).catch(() => {});
       observer.unobserve(entry.target);
     }
   }, { rootMargin: "800px 0px" });
