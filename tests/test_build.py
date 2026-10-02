@@ -102,6 +102,30 @@ def test_build_runs_all_steps_in_order(tmp_path, monkeypatch):
     assert (site / "blog/abortion/politics/2020/10/20/abortion.html").is_file()
 
 
+def test_build_exports_live_notebooks_that_run_at_load_and_show_code(tmp_path, monkeypatch):
+    root = fake_repo(tmp_path)
+    exports = []
+
+    def fake_run(cmd, cwd):
+        if cmd[:2] == ["quarto", "render"]:
+            fake_quarto_output(root)
+        if cmd[:2] == ["marimo", "export"]:
+            exports.append(cmd)
+            out = Path(cmd[cmd.index("-o") + 1])
+            out.parent.mkdir(parents=True, exist_ok=True)
+            out.write_text("notebook", encoding="utf-8")
+            (out.parent / "CLAUDE.md").write_text("a prompt that marimo writes", encoding="utf-8")
+
+    monkeypatch.setattr(build, "run", fake_run)
+    monkeypatch.setattr(build.check_site, "main", lambda argv: 0)
+    assert build.build(root) == 0
+    (cmd,) = exports
+    # edit mode waits for "Run all" before any cell runs; run mode runs the cells at load
+    assert cmd[cmd.index("--mode") + 1] == "run" and "--show-code" in cmd and "--execute" in cmd
+    live = root / "_site/blog/gaussian-processes/live"
+    assert (live / "index.html").is_file() and not (live / "CLAUDE.md").exists()
+
+
 def test_build_pins_the_katex_version_in_the_copied_blog(tmp_path, monkeypatch):
     root = fake_repo(tmp_path)
 

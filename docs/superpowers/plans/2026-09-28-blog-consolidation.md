@@ -2946,7 +2946,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 ### Task 12: The live notebook
 
-> **Done 2026-10-01** with the converter work: the build exports `blog/<slug>/notebook.py` (not `live.py`) to `live/` in marimo's edit mode, so the code is visible.
+> **Done 2026-10-01** with the converter work: the build exports `blog/<slug>/notebook.py` (not `live.py`) to `live/` in marimo's run mode with `--show-code`: the cells run when the page loads and the code is visible (edit mode waits for "Run all").
 
 **Files:**
 - Create: `blog/gaussian-processes/live.py` (a copy of the marimo notebook, without changes)

@@ -83,10 +83,14 @@ def build(root: Path = ROOT) -> int:
     pin_katex(site)
     for src, out in live_notebooks(blog, site):
         run(
-            # edit mode: the reader sees the code and can run it (the post links here for the code)
-            ["marimo", "export", "html-wasm", str(src), "--mode", "edit", "--execute", "-o", str(out), "-f"],
+            # run mode with the code shown: the cells run when the page loads (edit mode waits for
+            # "Run all", so a button does nothing), and the reader sees the code
+            ["marimo", "export", "html-wasm", str(src), "--mode", "run", "--show-code", "--execute",
+             "-o", str(out), "-f"],
             cwd=root,
         )
+        # marimo also writes CLAUDE.md (a prompt for AI assistants) next to the page: not for the site
+        (out.parent / "CLAUDE.md").unlink(missing_ok=True)
     copy_tree(root / "site-root", site)
     write_redirects(site)
     copy_feed(site)
