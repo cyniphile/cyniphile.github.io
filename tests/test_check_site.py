@@ -3,6 +3,7 @@ from pathlib import Path
 
 from check_site import (
     check_comments,
+    check_page_scripts,
     check_image_sizes,
     check_internal_links,
     check_listing,
@@ -171,4 +172,21 @@ def test_comments_show_only_on_posts(tmp_path):
     assert check_comments(tmp_path, {"abortion", "voter-fraud"}) == [
         "blog/about/index.html: comments must be off",
         "blog/voter-fraud/index.html: comments are missing",
+    ]
+
+
+def test_page_scripts_one_path_first_and_lazy_comments(tmp_path):
+    one_url = "<script>history.replaceState(null, '', '/x/')</script>"
+    goat = '<script data-goatcounter="https://lukeschiefelbein.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>'
+    giscus = 'script.src = "https://giscus.app/client.js";'
+    lazy = 'script.dataset.loading = "lazy";'
+    write(tmp_path / "blog/abortion/index.html", one_url + goat + giscus + lazy)
+    write(tmp_path / "blog/about/index.html", goat + one_url)
+    write(tmp_path / "blog/voter-fraud/index.html", one_url + goat + giscus)
+    write(tmp_path / "blog/topics/index.html", goat)
+    write(tmp_path / "blog/old/redirect.html", "no scripts")
+    assert check_page_scripts(tmp_path) == [
+        "blog/about/index.html: the one-path script must come before the GoatCounter tag",
+        "blog/topics/index.html: the one-path script must come before the GoatCounter tag",
+        "blog/voter-fraud/index.html: the comment frame must load lazily",
     ]

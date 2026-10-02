@@ -187,6 +187,26 @@ def check_comments(site_dir: Path, slugs: set[str]) -> list[str]:
     return errors
 
 
+GOATCOUNTER_TAG = 'data-goatcounter="https://lukeschiefelbein.goatcounter.com/count"'
+ONE_URL_SCRIPT = "history.replaceState"  # blog/_includes/one-url.html
+LAZY_GISCUS = 'script.dataset.loading = "lazy";'  # scripts/build.py lazy_giscus
+
+
+def check_page_scripts(site_dir: Path) -> list[str]:
+    """In each blog page with the GoatCounter tag, the one-path script must come before the tag
+    (GoatCounter and giscus read the address). A page with the giscus loader must load the comment
+    frame lazily."""
+    errors = []
+    for page in sorted((site_dir / "blog").rglob("*.html")):
+        text = page.read_text(encoding="utf-8", errors="replace")
+        tag = text.find(GOATCOUNTER_TAG)
+        if tag >= 0 and not 0 <= text.find(ONE_URL_SCRIPT) < tag:
+            errors.append(f"{rel(page, site_dir)}: the one-path script must come before the GoatCounter tag")
+        if "giscus.app/client.js" in text and LAZY_GISCUS not in text:
+            errors.append(f"{rel(page, site_dir)}: the comment frame must load lazily")
+    return errors
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--site", type=Path, default=Path("_site"))
@@ -200,6 +220,7 @@ def main(argv: list[str] | None = None) -> int:
         *check_image_sizes(args.blog),
         *check_listing(args.site, slugs),
         *check_comments(args.site, slugs),
+        *check_page_scripts(args.site),
     ]
     for error in errors:
         print(f"ERROR: {error}", file=sys.stderr)

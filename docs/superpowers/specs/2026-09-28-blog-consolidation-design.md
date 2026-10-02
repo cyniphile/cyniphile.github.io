@@ -162,7 +162,7 @@ The same script runs on the laptop and in CI:
 
 ### 6.4 CI (`.github/workflows/publish.yml`)
 
-- A push to `master`: install Quarto 1.10.18 and uv, run `uv sync --frozen`, run `scripts/build.py`, then deploy `_site` with `actions/upload-pages-artifact` and `actions/deploy-pages`.
+- A push to `master`: install Quarto 1.10.18, uv and Node.js, run `uv sync --locked` (it stops when `uv.lock` does not match `pyproject.toml`), run `uv run pytest`, run `scripts/build.py`, then deploy `_site` with `actions/upload-pages-artifact` and `actions/deploy-pages`.
 - A pull request: the same build and checks, with no deploy.
 - Python and marimo versions come from `uv.lock`.
 
