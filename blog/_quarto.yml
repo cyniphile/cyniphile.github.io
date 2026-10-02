@@ -49,3 +49,16 @@ format:
 
 execute:
   freeze: auto
+
+# Comments on posts (giscus: GitHub Discussions of this repo, category Announcements). The IDs
+# are the values that the configurator on giscus.app gives. Pages that are not posts set
+# "comments: false"; scripts/check_site.py checks both.
+comments:
+  giscus:
+    repo: cyniphile/cyniphile.github.io
+    repo-id: "MDEwOlJlcG9zaXRvcnkyNTg0NTEzOA=="
+    category: "Announcements"
+    category-id: "DIC_kwDOAYpdks4DG2a6"
+    mapping: pathname
+    reactions-enabled: true
+    loading: lazy

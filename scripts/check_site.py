@@ -172,17 +172,34 @@ def check_listing(site_dir: Path, slugs: set[str]) -> list[str]:
     return errors
 
 
+def check_comments(site_dir: Path, slugs: set[str]) -> list[str]:
+    blog = site_dir / "blog"
+    errors = []
+    for page in [blog / "index.html", *sorted(blog.glob("*/index.html"))]:
+        if not page.is_file():
+            continue
+        is_post = page.parent != blog and page.parent.name in slugs
+        has_comments = "giscus" in page.read_text(encoding="utf-8", errors="replace")
+        if is_post and not has_comments:
+            errors.append(f"{rel(page, site_dir)}: comments are missing")
+        if not is_post and has_comments:
+            errors.append(f"{rel(page, site_dir)}: comments must be off")
+    return errors
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--site", type=Path, default=Path("_site"))
     parser.add_argument("--blog", type=Path, default=Path("blog"))
     args = parser.parse_args(argv)
+    slugs = post_slugs(args.blog)
     errors = [
         *check_redirects(args.site),
         *check_internal_links(args.site),
         *check_page_budgets(args.site),
         *check_image_sizes(args.blog),
-        *check_listing(args.site, post_slugs(args.blog)),
+        *check_listing(args.site, slugs),
+        *check_comments(args.site, slugs),
     ]
     for error in errors:
         print(f"ERROR: {error}", file=sys.stderr)

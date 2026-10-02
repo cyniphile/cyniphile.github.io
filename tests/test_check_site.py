@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 
 from check_site import (
+    check_comments,
     check_image_sizes,
     check_internal_links,
     check_listing,
@@ -159,3 +160,15 @@ def test_internal_links_skips_redirect_pages(tmp_path):
 def test_main_returns_1_for_an_empty_site(tmp_path, capsys):
     assert main(["--site", str(tmp_path / "_site"), "--blog", str(tmp_path / "blog")]) == 1
     assert "site check(s) failed" in capsys.readouterr().err
+
+
+def test_comments_show_only_on_posts(tmp_path):
+    giscus = '<script src="https://giscus.app/client.js"></script>'
+    write(tmp_path / "blog/index.html", "post list")
+    write(tmp_path / "blog/abortion/index.html", giscus)
+    write(tmp_path / "blog/voter-fraud/index.html", "no comments here")
+    write(tmp_path / "blog/about/index.html", giscus)
+    assert check_comments(tmp_path, {"abortion", "voter-fraud"}) == [
+        "blog/about/index.html: comments must be off",
+        "blog/voter-fraud/index.html: comments are missing",
+    ]
