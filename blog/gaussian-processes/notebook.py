@@ -6,6 +6,7 @@
 #   "pandas",
 #   "scipy",
 #   "plotly",
+#   "marimo>=0.25.0",
 # ]
 # ///
 import marimo

@@ -61,16 +61,40 @@ function loadVega() {
   return vegaPromise;
 }
 
+// Math in control labels (span.mb-math) and in replaced cells (span.math). Quarto's KaTeX script
+// renders the page's span.math at DOMContentLoaded and stops at a span that is rendered already,
+// so this waits until it ran. KaTeX loads here when the page has no other math (Quarto then does
+// not load it).
+const KATEX = "https://cdn.jsdelivr.net/npm/katex@0.18.9/dist"; // as KATEX_VERSION in scripts/build.py
+let katexPromise;
+function loadKatex() {
+  katexPromise ??= (async () => {
+    if (document.readyState === "loading") {
+      await new Promise((resolve) => document.addEventListener("DOMContentLoaded", resolve, { once: true }));
+    }
+    await new Promise((resolve) => setTimeout(resolve));
+    if (!window.katex) {
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = `${KATEX}/katex.min.css`;
+      document.head.append(link);
+      await loadScript(`${KATEX}/katex.min.js`);
+    }
+    return window.katex;
+  })();
+  return katexPromise;
+}
+
 function renderMath(root) {
-  if (!window.katex) return;
-  for (const span of root.querySelectorAll("span.math")) {
-    if (span.dataset.mbMath) continue;
-    span.dataset.mbMath = "1";
-    window.katex.render(span.textContent, span, {
-      displayMode: span.classList.contains("display"),
-      throwOnError: false,
-    });
-  }
+  const todo = (span) => !span.dataset.mbMath && !span.querySelector(".katex");
+  if (![...root.querySelectorAll("span.mb-math, span.math")].some(todo)) return;
+  loadKatex().then((katex) => {
+    for (const span of root.querySelectorAll("span.mb-math, span.math")) {
+      if (!todo(span)) continue;
+      span.dataset.mbMath = "1";
+      katex.render(span.textContent, span, { displayMode: span.classList.contains("display"), throwOnError: false });
+    }
+  }).catch((error) => console.error("mb:", error));
 }
 
 // Plotly draws "$...$" text (legends, titles) with MathJax, as in marimo. MathJax loads only for
@@ -167,6 +191,7 @@ function hydrate(cellEl, payload, firstTime) {
     drawChart(`${cell}:${n}`, cellEl.querySelector(`.mb-chart[data-chart="${n}"]`), spec);
   });
   for (const el of cellEl.querySelectorAll("[data-control]")) mountControl(el);
+  for (const note of cellEl.querySelectorAll(".mb-unsupported")) addLiveLink(note);
 }
 
 function cellElement(cell) {
@@ -251,7 +276,13 @@ function tableEvent(group, state, name, value) {
   const spec = MODEL.controls[name];
   if (spec.kind === "slider") {
     state.index[name] = value;
+    // What the slider resets (marimo builds the state again): "cell:n" figures, "cell:cell" cells
     for (const key of data.reset_by[name] || []) {
+      const [cell, part] = key.split(":");
+      if (part === "cell") {
+        replaceCell(cell, originals.get(cell));
+        continue;
+      }
       const entry = figures.get(key);
       if (entry) {
         entry.fig = core.clone(defaults.get(key));
@@ -348,37 +379,47 @@ async function liveEvent(group, state, name, value) {
   status("Running…");
   py.globals.set("mb_code", value);
   const results = JSON.parse(py.runPython("mb_live.run(mb_code)"));
+  const hidden = []; // errors of cells without output (they compute values for other cells)
   for (const [cell, out] of Object.entries(results)) {
     const cellEl = cellElement(cell);
-    if (!cellEl) continue; // a cell without output (it computes values for other cells)
-    let errorBox = cellEl.querySelector(".mb-error");
-    if (out.kind === "error") {
-      if (!errorBox) {
-        errorBox = document.createElement("pre");
-        errorBox.className = "mb-error";
-        cellEl.append(errorBox);
-      }
-      errorBox.textContent = out.text;
-      continue;
-    }
-    errorBox?.remove();
-    if (out.kind === "plotly" && out.figure && figures.has(`${cell}:0`)) {
-      const entry = figures.get(`${cell}:0`);
-      entry.fig = out.figure;
-      entry.config = { ...entry.config, ...out.config };
-      await drawFigure(`${cell}:0`);
-    } else if (out.kind === "html" && out.html) {
-      let box = cellEl.querySelector(".mb-live-html");
-      if (!box) {
-        box = document.createElement("div");
-        box.className = "mb-live-html";
-        cellEl.append(box);
-      }
-      box.innerHTML = out.html;
-      renderMath(box);
-    }
+    if (cellEl) await showLiveResult(cellEl, cell, out);
+    else if (out.kind === "error") hidden.push(out.text);
   }
+  let box = editorEl.querySelector(".mb-editor-error");
+  if (hidden.length && !box) {
+    box = document.createElement("pre");
+    box.className = "mb-error mb-editor-error";
+    editorEl.append(box);
+  }
+  if (hidden.length) box.textContent = hidden.join("\n");
+  else box?.remove();
   status("");
+}
+
+// A live cell shows its new figure; an error or another output replaces the figure (as in
+// marimo) until a run gives a figure again.
+function showLiveResult(cellEl, cell, out) {
+  let box = cellEl.querySelector(":scope > .mb-live-box");
+  if (out.kind === "plotly" && out.figure && figures.has(`${cell}:0`)) {
+    box?.remove();
+    cellEl.classList.remove("mb-live-other");
+    const entry = figures.get(`${cell}:0`);
+    entry.fig = out.figure;
+    entry.config = { ...entry.config, ...out.config };
+    return drawFigure(`${cell}:0`);
+  }
+  if (!box) {
+    box = document.createElement("div");
+    box.className = "mb-live-box";
+    cellEl.append(box);
+  }
+  cellEl.classList.add("mb-live-other");
+  if (out.kind === "error") box.innerHTML = `<pre class="mb-error">${escapeHtml(out.text)}</pre>`;
+  else {
+    box.innerHTML = out.html || "";
+    renderMath(box);
+  }
+  return Promise.resolve();
 }
 
 // ---- controls (marimo's look, see mb.css) ----
@@ -402,13 +443,16 @@ function disableControl(el) {
   el.classList.add("mb-static");
   for (const input of el.querySelectorAll("input, button, textarea")) input.disabled = true;
   for (const td of el.querySelectorAll("td")) td.classList.add("mb-disabled");
-  if (MODEL.live) {
-    const link = document.createElement("a");
-    link.className = "mb-live-link";
-    link.href = MODEL.live;
-    link.textContent = "try it in the live notebook";
-    el.append(link);
-  }
+  addLiveLink(el);
+}
+
+function addLiveLink(el) {
+  if (!MODEL.live || el.querySelector(":scope > .mb-live-link")) return;
+  const link = document.createElement("a");
+  link.className = "mb-live-link";
+  link.href = MODEL.live;
+  link.textContent = "try it in the live notebook";
+  el.append(link);
 }
 
 function mountSlider(el, spec) {
@@ -453,16 +497,12 @@ function mountMatrix(el, spec) {
   const value = spec.value.map((row) => row.map(Number));
   const format = (v) => v.toFixed(spec.precision ?? 1);
   el.classList.add("mb-matrix");
-  if (spec.label_html && !el.previousElementSibling?.classList.contains("mb-matrix-label")) {
-    // marimo shows the label before the matrix (outside its brackets)
-    const label = document.createElement("span");
-    label.className = "mb-control mb-matrix-label";
-    label.innerHTML = spec.label_html;
-    el.before(label);
-    renderMath(label);
-  }
-  el.innerHTML = `<table><tbody>${value.map((row, i) => `<tr>${row.map((v, j) =>
-    `<td tabindex="0" data-i="${i}" data-j="${j}" aria-label="Row ${i + 1}, Column ${j + 1}">${format(v)}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+  // marimo shows the label before the matrix, outside its brackets (the box draws them). The label
+  // is inside the control element, so it stays when the cell is replaced.
+  el.innerHTML = (spec.label_html ? `<span class="mb-matrix-label">${spec.label_html}</span>` : "")
+    + `<div class="mb-matrix-box"><table><tbody>${value.map((row, i) => `<tr>${row.map((v, j) =>
+      `<td tabindex="0" data-i="${i}" data-j="${j}" aria-label="Row ${i + 1}, Column ${j + 1}">${format(v)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+  renderMath(el);
   const cellOf = (i, j) => el.querySelector(`td[data-i="${i}"][data-j="${j}"]`);
   const setValue = (i, j, v) => {
     value[i][j] = v;

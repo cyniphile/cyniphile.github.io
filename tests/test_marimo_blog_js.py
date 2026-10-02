@@ -63,6 +63,13 @@ def test_js_core_matches_python():
         {"figure": {"data": [], "layout": {}}, "default": fig,
          "ops": [{"op": "set", "path": ["layout", "title", "text"], "value": "t"},
                  {"op": "del", "path": ["layout", "xaxis", "range"]}]},
+        # paths through a missing list item do nothing (both sides)
+        {"figure": {"data": [{"y": [0, 1]}], "layout": {}}, "default": fig,
+         "ops": [{"op": "set", "path": ["data", 1, "y"], "value": [2, 2]},
+                 {"op": "set", "path": ["data", 3, "y"], "value": [2]},
+                 {"op": "del", "path": ["data", 5, "y"]},
+                 {"op": "set", "path": ["data", 0, "y", 2], "value": 7},
+                 {"op": "del", "path": ["data", 0, "y", 9]}]},
     ]
     normal = [{"loc": 1.5, "scale": 2.0, "z": [0.0, 1.0, -1.0]}, {"loc": [0, 10], "scale": [1, 2], "z": [1.0, 1.0]}]
     # loc and scale as full-size arrays, loc shared through the array table ({"$a"})

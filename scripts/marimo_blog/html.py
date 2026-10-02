@@ -8,14 +8,19 @@ The blog version keeps marimo's layout HTML (flex divs, markdown) and replaces e
   Rendered.charts
 - buttons, sliders, matrices and editable code editors → <div class="mb-KIND" data-control="NAME">;
   the runtime draws the control from its spec (Rendered.controls has the specs)
-- a read-only code editor (mo.show_code) → <pre class="mb-code">; a cell whose whole output is one
-  read-only code editor is written as a Markdown code block instead (Rendered.code)
+- a read-only code editor (mo.show_code) → <pre class="mb-code">; when it is the whole output,
+  Rendered.code has the code too (the post shows it as a Markdown code block when no event
+  changes it)
+- other inputs without content (dropdown, table, text, ...) → <div class="mb-unsupported"> with the
+  label and the default value (a table: its rows); the runtime adds a link to the live notebook
 - marimo-tex → <span class="math inline|display">TeX</span>, the form that Quarto's KaTeX script
-  renders
+  renders; in control labels <span class="mb-math ...">, which the runtime renders (Quarto's
+  script must not see them: it fails on a span that is rendered already)
 """
 
 from __future__ import annotations
 
+import html as htmllib
 import json
 import re
 from dataclasses import dataclass, field
@@ -52,13 +57,13 @@ def data_attrs(tag: Tag) -> dict:
 
 
 def label_html(label) -> str:
-    """A marimo label (rendered markdown HTML) as blog HTML: math as Quarto's KaTeX spans
-    (the runtime renders them), without marimo's markdown wrappers."""
+    """A marimo label (rendered markdown HTML) as blog HTML: math as mb-math spans (the runtime
+    renders them), without marimo's markdown wrappers."""
     if not label:
         return ""
     soup = BeautifulSoup(str(label), "html.parser")
     for tex in soup.find_all("marimo-tex"):
-        tex.replace_with(_tex(tex, soup))
+        tex.replace_with(_tex(tex, soup, "mb-math"))
     for span in soup.find_all("span", class_=["markdown", "paragraph"]):
         span.unwrap()
     return str(soup).strip()
@@ -85,11 +90,11 @@ def slider_values(attrs: dict) -> list:
     return values
 
 
-def _tex(tag: Tag, soup: BeautifulSoup) -> Tag:
+def _tex(tag: Tag, soup: BeautifulSoup, cls: str = "math") -> Tag:
     text = tag.get_text()
     display = text.startswith("||[") or text.startswith("||$$")
     inner = re.sub(r"^\|\|[\(\[]|\|\|[\)\]]$", "", text.strip())
-    span = soup.new_tag("span", attrs={"class": f"math {'display' if display else 'inline'}"})
+    span = soup.new_tag("span", attrs={"class": f"{cls} {'display' if display else 'inline'}"})
     span.string = inner
     return span
 
@@ -134,6 +139,7 @@ def render(html: str, name_for_id: Callable[[str], str | None]) -> Rendered:
     if (len(wrappers) == 1 and elements[0] is not None and elements[0].name == "marimo-code-editor"
             and data_attrs(elements[0]).get("disabled") and not soup.get_text(strip=True)):
         out.code = data_attrs(elements[0]).get("initial-value") or ""
+        out.html = f'<pre class="mb-code">{htmllib.escape(out.code)}</pre>'
         return out
 
     for wrapper, element in zip(wrappers, elements):
@@ -160,6 +166,11 @@ def render(html: str, name_for_id: Callable[[str], str | None]) -> Rendered:
             placeholder = soup.new_tag("div", attrs={"class": "mb-chart", "data-chart": str(len(out.charts))})
             out.charts.append(json.loads(data) if isinstance(data, str) else dict(data))
             out.warnings.append("an altair_chart is shown as a chart; its selection is not interactive")
+        elif not element.get_text(strip=True) and not element.find(True):
+            # an input without content (its options and value are attributes): a static note
+            placeholder = unsupported_note(element.name, attrs, soup)
+            out.warnings.append(f"no blog version of <{element.name}>; the page shows its default value "
+                                f"and links to the live notebook")
         else:
             out.warnings.append(f"no blog version of <{element.name}>; its content is shown without interaction")
             element.unwrap()
@@ -195,6 +206,54 @@ def render(html: str, name_for_id: Callable[[str], str | None]) -> Rendered:
 
     out.html = str(soup)
     return out
+
+
+MAX_TABLE_ROWS = 50
+
+
+def unsupported_note(name: str, attrs: dict, soup: BeautifulSoup) -> Tag:
+    """A static stand-in for a marimo input that the blog cannot run: its label and default value
+    (a table: its rows, up to MAX_TABLE_ROWS)."""
+    note = soup.new_tag("div", attrs={"class": "mb-unsupported", "data-element": name.removeprefix("marimo-")})
+    label = label_html(attrs.get("label"))
+    if label:
+        note.append(BeautifulSoup(f'<span class="mb-unsupported-label">{label}</span>', "html.parser"))
+    rows = attrs.get("data")
+    if isinstance(rows, str):
+        try:
+            rows = json.loads(rows)
+        except json.JSONDecodeError:
+            rows = None
+    if isinstance(rows, list) and rows and all(isinstance(r, dict) for r in rows):
+        columns = [c for c in rows[0] if c != "_marimo_row_id"]
+        table = soup.new_tag("table", attrs={"class": "mb-table"})
+        head = soup.new_tag("tr")
+        for column in columns:
+            th = soup.new_tag("th")
+            th.string = str(column)
+            head.append(th)
+        table.append(head)
+        for row in rows[:MAX_TABLE_ROWS]:
+            tr = soup.new_tag("tr")
+            for column in columns:
+                td = soup.new_tag("td")
+                td.string = "" if row.get(column) is None else str(row.get(column))
+                tr.append(td)
+            table.append(tr)
+        note.append(table)
+        if len(rows) > MAX_TABLE_ROWS:
+            more = soup.new_tag("span", attrs={"class": "mb-unsupported-value"})
+            more.string = f"The first {MAX_TABLE_ROWS} of {len(rows)} rows."
+            note.append(more)
+        return note
+    value = attrs.get("initial-value")
+    if isinstance(value, list) and all(isinstance(v, (str, int, float)) for v in value):
+        value = ", ".join(str(v) for v in value)
+    if isinstance(value, (str, int, float)) and not isinstance(value, bool) and str(value) != "":
+        span = soup.new_tag("span", attrs={"class": "mb-unsupported-value"})
+        span.string = str(value)
+        note.append(span)
+    return note
 
 
 def text_of(html: str) -> str:

@@ -86,7 +86,7 @@ def test_live_editor(converted):
     _, _, _, model, groups = converted
     group = group_of(model, groups, "editor")
     assert group["kind"] == "live" and group["editor"] == "editor"
-    assert [cell for cell, _ in group["run"]] == [str(c) for c in group["cells"]]
+    assert [run[0] for run in group["run"]] == [str(c) for c in group["cells"]]
     assert "import plotly.graph_objects as go" in group["setup"]
     assert "pandas" not in group["setup"] and "altair" not in group["setup"]
     assert any(p.startswith("plotly==") for p in group["packages"])

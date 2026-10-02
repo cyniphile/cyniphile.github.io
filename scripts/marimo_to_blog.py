@@ -46,14 +46,17 @@ def up_to_date(post_dir: Path) -> bool:
 
 
 def convert(post_dir: Path, verify: bool = True) -> M.Page:
-    """Write the post. With verify, replay random reader events on the result and on marimo, and
-    report each difference as a warning (scripts/marimo_blog/verify.py)."""
+    """Write the post. With verify, compare the page load with a fresh run of the notebook and
+    replay random reader events on the result and on the notebook; each difference is a warning
+    (scripts/marimo_blog/verify.py)."""
     post_dir = Path(post_dir)
     front = yaml.safe_load((post_dir / "post.yml").read_text())
     with Session(post_dir / "notebook.py") as session:
         page = M.build(session)
     if verify:
-        page.warnings += [f"differs from marimo: {problem}" for problem in V.verify(post_dir / "notebook.py", page)]
+        page.warnings += [f"differs from the notebook: {problem}"
+                          for problem in V.verify(post_dir / "notebook.py", page)]
+    page.warnings = list(dict.fromkeys(page.warnings))
     sizes = emit(page, post_dir, front, source_hash(post_dir), plotly.offline.get_plotlyjs_version())
     for warning in page.warnings:
         print(f"warning: {warning}", file=sys.stderr)
@@ -68,7 +71,7 @@ def main(argv=None) -> int:
     parser.add_argument("post", type=Path, help="the post folder (with notebook.py and post.yml)")
     parser.add_argument("--check", action="store_true", help="exit 1 if index.qmd is out of date")
     parser.add_argument("--no-verify", action="store_true",
-                        help="do not replay random events against marimo (faster)")
+                        help="do not compare the result with the notebook (faster)")
     args = parser.parse_args(argv)
     if args.check:
         ok = up_to_date(args.post)

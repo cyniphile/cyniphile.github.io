@@ -130,8 +130,9 @@ def set_ops(before, after, path: tuple = ()) -> list[dict]:
 
 
 def _same_style_change(per_trace: list[list[dict]]) -> dict | None:
-    """If every trace got exactly the same top-level attribute sets, return them."""
-    if not per_trace or not all(per_trace):
+    """If every trace (two or more) got exactly the same top-level attribute sets, return them.
+    (With one trace, the change may be for that trace only: it stays a path operation.)"""
+    if len(per_trace) < 2 or not all(per_trace):
         return None
     first = per_trace[0]
     if any(op["op"] != "set" or len(op["path"]) != 1 for op in first):
@@ -213,7 +214,8 @@ def filled_ops(default: dict, own: list[dict], paths: set[tuple]) -> list[dict]:
 def apply(figure: dict, ops: list[dict], default: dict | None = None) -> dict:
     """Apply operations to a figure (the Python twin of mb-core.js applyOps).
 
-    A set makes missing parent objects; a del of a missing value does nothing."""
+    A set makes missing parent objects; an operation whose path goes through a missing list item,
+    and a del of a missing value, do nothing."""
     import copy
 
     fig = copy.deepcopy(figure)
@@ -224,23 +226,32 @@ def apply(figure: dict, ops: list[dict], default: dict | None = None) -> dict:
         elif kind in ("set", "del"):
             target = fig
             for key in op["path"][:-1]:
-                if isinstance(target, dict) and target.get(key) is None:
+                if isinstance(target, list):
+                    target = target[key] if isinstance(key, int) and 0 <= key < len(target) else None
+                elif target.get(key) is None:
                     if kind == "del":
                         target = None
-                        break
-                    target[key] = {}
-                target = target[key]
+                    else:
+                        target[key] = {}
+                        target = target[key]
+                else:
+                    target = target[key]
+                if target is None:
+                    break
             if target is None:
                 continue
             last = op["path"][-1]
-            if kind == "set":
-                if isinstance(target, list) and last == len(target):
+            if isinstance(target, list):
+                if not isinstance(last, int) or last < 0 or last > len(target) or (kind == "del" and last == len(target)):
+                    continue
+                if kind == "del":
+                    del target[last]
+                elif last == len(target):
                     target.append(copy.deepcopy(op["value"]))
                 else:
                     target[last] = copy.deepcopy(op["value"])
-            elif isinstance(target, list):
-                if isinstance(last, int) and last < len(target):
-                    del target[last]
+            elif kind == "set":
+                target[last] = copy.deepcopy(op["value"])
             else:
                 target.pop(last, None)
         elif kind == "add":

@@ -113,6 +113,9 @@ class Session:
             raise ValueError(f"{len(outputs)} outputs for {len(self.cells)} cells")
         self.outputs = list(outputs)
         self.defs = dict(defs)
+        # names that a cell did not give (it raised, stopped or did not run) → the message that
+        # marimo shows in the cells that use them (marimo/_runtime/runner/hooks_on_finish.py)
+        self.failed: dict[str, str] = {}
         self.definer = {name: c.index for c in self.cells for name in c.defs}
 
     # ---- context ----
@@ -198,12 +201,13 @@ class Session:
         elements = {id(e): (e, copy.deepcopy(e._value)) for e in self.elements}
         self._used_states.clear()
         self._used_elements.clear()
-        return dict(self.defs), list(self.outputs), states, elements, np.random.get_state()
+        return (dict(self.defs), list(self.outputs), states, elements, np.random.get_state(),
+                dict(self.failed))
 
     def restore(self, point) -> None:
         """Go back to a checkpoint. Only the states and UI values that events used are copied back."""
-        defs, outputs, states, elements, random_state = point
-        self.defs, self.outputs = dict(defs), list(outputs)
+        defs, outputs, states, elements, random_state, failed = point
+        self.defs, self.outputs, self.failed = dict(defs), list(outputs), dict(failed)
         for key in self._used_states:
             if key in states:
                 state, value = states[key]
@@ -243,9 +247,11 @@ class Session:
     def rerun(self, names: set[str]) -> list[int]:
         """Run again the cells that use the names, then their descendants. Return the cells run.
 
-        As in marimo, a cell that raises shows the error, and the cells that depend on it do not
-        run (they show that an ancestor raised)."""
-        dirty, failed, ran = set(names), set(), []
+        As in marimo: a cell that raises shows the error, and a cell that mo.stop stops shows its
+        stop output; their definitions go away (self.failed keeps their names), and the cells that
+        use them do not run and show marimo's message, also in later events, until the cell runs
+        again without an error."""
+        dirty, ran = set(names), []
         with self._in_notebook_dir():
             for index in self.order:
                 cell = self.cells[index]
@@ -253,20 +259,43 @@ class Session:
                     continue
                 ran.append(index)
                 dirty |= cell.defs
-                if cell.refs & failed:
-                    self.outputs[index] = CellError("This cell did not run: a cell that it uses raised an exception.")
-                    failed |= cell.defs
+                blocked = sorted(cell.refs & self.failed.keys())
+                if blocked:
+                    self.outputs[index] = CellError(self.failed[blocked[0]])
+                    self._fail(cell, self.failed[blocked[0]])
                     continue
                 refs = {r: self.defs[r] for r in cell.refs if r in self.defs}
                 try:
                     output, defs = self._cell_objects[index].run(**refs)
                 except Exception as error:  # noqa: BLE001 - marimo shows any exception in the cell
                     self.outputs[index] = CellError(f"{type(error).__name__}: {error}")
-                    failed |= cell.defs
+                    self._fail(cell, f"An ancestor raised an exception ({type(error).__name__})")
                     continue
                 self.outputs[index] = output
                 self.defs.update(defs)
+                missing = cell.defs - set(defs)  # mo.stop: the cell stopped before its definitions
+                for name in cell.defs - missing:
+                    self.failed.pop(name, None)
+                for name in missing:
+                    self.defs.pop(name, None)
+                    self.failed[name] = "This cell wasn't run because an ancestor was stopped with `mo.stop`"
         return ran
+
+    def _fail(self, cell: CellInfo, reason: str) -> None:
+        for name in cell.defs:
+            self.defs.pop(name, None)
+            self.failed[name] = reason
+
+    def run_users(self, name: str, seed: int | None = None) -> list[int]:
+        """Run again the cells that use the element, with its current value and without its
+        callbacks. The converter uses this for the page load of a group whose cells draw random
+        numbers: the page then shows the same draws as the group's events."""
+        element = self.defs[name]
+        if seed is not None:
+            np.random.seed(seed)
+        self._used_elements.add(id(element))
+        with self.watch_states():
+            return self.rerun({name})
 
     def set_value(self, name: str, value, seed: int | None = None) -> list[int]:
         """Simulate a reader event: the frontend sends `value` for the UI element `name`.
@@ -278,6 +307,9 @@ class Session:
             np.random.seed(seed)
         self._used_elements.add(id(element))
         with self.watch_states() as changed:
-            element._update(value)
+            try:
+                element._update(value)
+            except Exception:  # noqa: BLE001 - marimo logs an on_change error and runs the cells
+                pass
             getters = {n for n, v in self.defs.items() if isinstance(v, marimo_state.State) and id(v) in changed}
             return self.rerun({name} | getters)

@@ -1,9 +1,10 @@
 """A small stand-in for marimo, for the cells that a blog post runs live with Pyodide.
 
 mb.js loads this module, calls configure() with the group's data (setup code, the cells to run as
-a list of [cell, code], editor name), and run(code) after each edit. The converter runs the same
-module in CPython to check a live group (scripts/marimo_blog/live.py). run() returns JSON: per cell, {"kind": "plotly", "figure",
-"config"}, {"kind": "html", "html"} or {"kind": "error", "text"}.
+a list of [cell, code, names read, names defined], editor name), and run(code) after each edit.
+The converter runs the same module in CPython to check a live group (scripts/marimo_blog/live.py).
+run() returns JSON: per cell, {"kind": "plotly", "figure", "config"}, {"kind": "html", "html"} or
+{"kind": "error", "text"}.
 """
 
 import ast
@@ -92,19 +93,21 @@ def _payload(out):
 
 
 def run(code):
-    """Run the cells (a list of [cell, code], in marimo's order) with the editor's new code. A cell
-    after a cell that raised does not run (as in marimo)."""
+    """Run the cells (in marimo's order) with the editor's new code. As in marimo, a cell that
+    reads a name of a cell that raised does not run; the other cells run."""
     _namespace[_spec["editor"]] = _Value(code)
     results = {}
-    failed = False
-    for cell, cell_code in _spec["run"]:
-        if failed:
-            results[cell] = {"kind": "error", "text": "This cell did not run: an earlier cell raised an exception."}
+    failed = {}  # names of cells that raised or did not run → marimo's message for their users
+    for cell, cell_code, refs, defs in _spec["run"]:
+        blocked = sorted(set(refs) & failed.keys())
+        if blocked:
+            results[cell] = {"kind": "error", "text": failed[blocked[0]]}
+            failed.update(dict.fromkeys(defs, failed[blocked[0]]))
             continue
         try:
             results[cell] = _payload(run_cell(cell_code, _namespace))
-        except Exception:
+        except Exception as error:
             text = traceback.format_exc(limit=-3)
             results[cell] = {"kind": "error", "text": text.replace('File "<cell>", ', "")}
-            failed = True
+            failed.update(dict.fromkeys(defs, f"An ancestor raised an exception ({type(error).__name__})"))
     return json.dumps(results)

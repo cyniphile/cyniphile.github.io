@@ -18,6 +18,7 @@ from pathlib import Path
 
 import numpy as np
 
+from . import html as H
 from . import ops as O
 from .model import UnsupportedGroup
 
@@ -119,6 +120,13 @@ def live_group(builder, gid: str, group: dict) -> dict:
     editor = editors[0]
     # Every cell that marimo runs again after an edit, with or without output, in topological order
     ran = builder.ran_cells(editor)
+    for i in ran:
+        default = builder.default.get(i)
+        # The browser updates the figure of a shown cell; other content (text, charts) would stay
+        # as at page load, so such cells are not supported.
+        if default is not None and (len(default.figures) != 1 or default.charts or H.text_of(default.html)):
+            raise UnsupportedGroup(f"cell {i} shows other output than one Plotly figure (the blog runs live code "
+                                   f"only for cells that show one figure; put text in another cell)")
     order, _ = needed_cells(s, ran, skip={"mo", editor})
     used = set()
     for i in [*order, *ran]:
@@ -132,7 +140,8 @@ def live_group(builder, gid: str, group: dict) -> dict:
         "editor": editor,
         "cells": [i for i in ran if i in group["cells"]],
         "setup": setup,
-        "run": [[str(i), s.cells[i].code] for i in ran],  # a list: the order matters
+        # a list (the order matters) of [cell, code, names it reads, names it defines]
+        "run": [[str(i), s.cells[i].code, sorted(s.cells[i].refs), sorted(s.cells[i].defs)] for i in ran],
         "packages": requirements(modules),
         "pyodide": PYODIDE_VERSION,
     }
@@ -156,10 +165,11 @@ def check_live(builder, data: dict, code: str) -> None:
     finally:
         sys.modules["marimo"] = real_marimo
         np.random.set_state(random_state)
-    for cell in data["cells"]:
-        out = results.get(str(cell)) or {}
+    for cell, out in results.items():
         if out.get("kind") == "error":
             raise UnsupportedGroup(f"cell {cell} fails in the browser's stand-in for marimo: {out.get('text')}")
+    for cell in data["cells"]:
+        out = results.get(str(cell)) or {}
         default = builder.default.get(cell)
         if default is None:
             continue

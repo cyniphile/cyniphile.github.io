@@ -80,14 +80,23 @@
   cursor: default;
 }
 
-/* matrix: blue monospace numbers in square brackets; drag a number sideways to change it */
+/* matrix: the label, then blue monospace numbers in square brackets; drag a number sideways to
+   change it */
 .mb-matrix {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font: 500 14.4px/25.2px "PT Sans", sans-serif;
+  color: rgb(15, 23, 42);
+}
+.mb-matrix-box {
   display: inline-block;
   position: relative;
   padding: 0 6px;
 }
-.mb-matrix::before,
-.mb-matrix::after {
+.mb-matrix-box::before,
+.mb-matrix-box::after {
   content: "";
   position: absolute;
   top: 0;
@@ -95,11 +104,11 @@
   width: 5px;
   border: 1.5px solid rgb(15, 23, 42);
 }
-.mb-matrix::before {
+.mb-matrix-box::before {
   left: 0;
   border-right: none;
 }
-.mb-matrix::after {
+.mb-matrix-box::after {
   right: 0;
   border-left: none;
 }
@@ -200,9 +209,34 @@ main.content .mb-matrix td.mb-dragging {
   height: auto !important; /* Vega sets the pixel height inline */
 }
 
-/* A control that the converter could not make interactive (see mb.js disableControl) */
+/* A control that the converter could not make interactive (see mb.js disableControl), and a
+   marimo input that the blog has no version of (html.py unsupported_note) */
 .mb-static {
   opacity: 0.6;
+}
+.mb-unsupported {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0.25rem 0;
+  font: 500 14.4px/25.2px "PT Sans", sans-serif;
+  color: rgb(15, 23, 42);
+}
+.mb-unsupported-value {
+  padding: 0 8px;
+  color: rgb(100, 116, 139);
+  border: 1px solid rgb(226, 232, 240);
+  border-radius: 6px;
+}
+.mb-unsupported .mb-table {
+  flex-basis: 100%;
+  font-weight: 400;
+}
+
+/* live code: an error or another output replaces the figure until the next run */
+.mb-live-other .mb-plot {
+  display: none;
 }
 .mb-live-link {
   display: inline-block;

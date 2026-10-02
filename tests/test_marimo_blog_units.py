@@ -302,3 +302,25 @@ def test_verify_reports_a_wrong_state(tmp_path):
     for key in broken.groups[gid]["states"]:
         broken.groups[gid]["states"][key] = {}  # slider moves that do nothing
     assert any("differs" in p or "in the blog" in p for p in V.verify(path, broken))
+
+
+def test_label_math_is_rendered_by_the_runtime_not_by_quarto():
+    label = '<span class="markdown"><span class="paragraph">Scale <marimo-tex>||(\\ell||)</marimo-tex></span></span>'
+    assert H.label_html(label) == 'Scale <span class="mb-math inline">\\ell</span>'
+
+
+def test_live_stand_in_blocks_only_the_users_of_a_failed_cell():
+    from marimo_blog import live
+    mb_live = live.load_mb_live()
+    spec = {"editor": "ed", "setup": "", "run": [
+        ["1", "x = int(ed.value)", ["ed"], ["x"]],
+        ["2", "y = x + 1", ["x"], ["y"]],
+        ["3", "z = y * 2", ["y"], ["z"]],
+        ["4", "len(ed.value)", ["ed"], []],
+    ]}
+    mb_live.configure(json.dumps(spec))
+    results = json.loads(mb_live.run("oops"))
+    assert results["1"]["kind"] == "error" and "ValueError" in results["1"]["text"]
+    assert results["2"]["text"] == results["3"]["text"] == "An ancestor raised an exception (ValueError)"
+    assert results["4"] == {"kind": "html", "html": "<pre>4</pre>"}
+    assert json.loads(mb_live.run("2"))["3"] == {"kind": "html", "html": ""}

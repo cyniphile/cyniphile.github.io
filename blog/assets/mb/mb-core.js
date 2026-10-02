@@ -34,20 +34,32 @@ export function applyOps(figure, ops, defaultFigure) {
         break;
       case "set":
       case "del": {
-        // A set makes missing parent objects; a del of a missing value does nothing.
+        // A set makes missing parent objects; an operation whose path goes through a missing list
+        // item, and a del of a missing value, do nothing (the same rules as ops.apply in Python).
         let target = fig;
         for (const key of op.path.slice(0, -1)) {
-          if (target[key] === undefined || target[key] === null) {
-            if (op.op === "del") { target = null; break; }
-            target[key] = {};
+          if (Array.isArray(target)) {
+            target = Number.isInteger(key) && key >= 0 && key < target.length ? target[key] : null;
+          } else if (target[key] === undefined || target[key] === null) {
+            if (op.op === "del") target = null;
+            else target = target[key] = {};
+          } else {
+            target = target[key];
           }
-          target = target[key];
+          if (target === null) break;
         }
         if (target === null) break;
         const last = op.path[op.path.length - 1];
-        if (op.op === "set") target[last] = clone(op.value);
-        else if (Array.isArray(target)) target.splice(last, 1);
-        else delete target[last];
+        if (Array.isArray(target)) {
+          const ok = Number.isInteger(last) && last >= 0 && (op.op === "set" ? last <= target.length : last < target.length);
+          if (!ok) break;
+          if (op.op === "del") target.splice(last, 1);
+          else target[last] = clone(op.value);
+        } else if (op.op === "set") {
+          target[last] = clone(op.value);
+        } else {
+          delete target[last];
+        }
         break;
       }
       case "add":

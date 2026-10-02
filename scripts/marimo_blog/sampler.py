@@ -216,7 +216,7 @@ def sampler_group(builder, gid: str, group: dict) -> dict:
     # as the browser, so the browser's samples agree with the page at the default values.
     s.restore(builder.base)
     with rng.recording() as recorder:
-        s.set_value(names[-1], controls[names[-1]]["value"], seed=rng.event_seed(gid))
+        s.run_users(names[-1], seed=rng.event_seed(gid))
     default_out = builder.rendered(cell)
     default_calls = [c for c in recorder.calls if c.fn == "multivariate_normal" and c.result is not None]
     target = None if default_out is None or len(default_calls) != 1 else _find_target(
@@ -226,7 +226,7 @@ def sampler_group(builder, gid: str, group: dict) -> dict:
     rest = [_without_target(out, t) for (_, _, out), t in zip(probes, targets)]
     if rest[0] != rest[1] or rest[0] != _without_target(default_out, target):
         raise UnsupportedGroup("other parts of the output change with the matrices")
-    builder.set_default(cell, default_out)
+    builder.set_default(cell, default_out, gid)
 
     call = probes[0][1]
     check = call.params.get("check_valid", "warn")

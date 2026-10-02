@@ -50,6 +50,7 @@ class Page:
     controls: dict[str, dict]
     groups: dict[str, dict] = field(default_factory=dict)
     warnings: list[str] = field(default_factory=list)
+    redrawn: dict[int, str] = field(default_factory=dict)  # cell → group: page load from the group's draws
 
 
 def markdown_of(code: str) -> str | None:
@@ -84,7 +85,8 @@ class Builder:
         self.base = session.checkpoint()
         self.default: dict[int, H.Rendered] = {}
         self._ran: dict[str, list[int]] = {}
-        self._targets: dict[str, set[str]] = {}  # list button → the figures ("cell:number") it changes
+        self._random: list[str] = []  # the current group's sliders whose cells draw random numbers
+        self._touched: list[str] = []  # the current group's sliders whose event at the default changes the output
 
     # ---- rendering ----
 
@@ -103,9 +105,10 @@ class Builder:
         out.charts = [O.compact(chart) for chart in out.charts]
         return out
 
-    def set_default(self, index: int, out: H.Rendered) -> None:
-        """Show another output at page load (a group can need the default from its own draws)."""
+    def set_default(self, index: int, out: H.Rendered, gid: str) -> None:
+        """Show another output at page load: the group's own draws (page.redrawn records it)."""
         self.default[index] = out
+        self.page.redrawn[index] = gid
         for cell in self.page.cells:
             if cell.index == index:
                 cell.rendered = out
@@ -123,11 +126,13 @@ class Builder:
                 self.page.cells.append(CellOut(cell.index, "markdown", markdown=text))
                 continue
             out = self.rendered(cell.index)
-            if out is None or (not out.html.strip() and out.code is None):
+            if out is None:
                 continue
-            self.default[cell.index] = out
             for warning in out.warnings:
                 self.page.warnings.append(f"cell {cell.index}: {warning}")
+            if not out.html.strip():
+                continue
+            self.default[cell.index] = out
             if out.code is not None:
                 self.page.cells.append(CellOut(cell.index, "code", code=out.code))
                 continue
@@ -143,6 +148,9 @@ class Builder:
             self.page.groups[gid] = data
             for name in group["controls"]:
                 self.page.controls[name]["group"] = gid
+            for cell in self.page.cells:  # shown code that events change: an HTML island
+                if cell.kind == "code" and cell.index in group["cells"]:
+                    cell.kind, cell.rendered = "html", self.default[cell.index]
         self.s.restore(self.base)
         return self.page
 
@@ -239,39 +247,77 @@ class Builder:
             raise UnsupportedGroup(f"{states} slider combinations (the limit is {MAX_STATES})")
         default_state = tuple(controls[n]["index"] for n in sliders)
         cells = sorted(group["cells"])
-        data = {"kind": "table", "sliders": sliders, "cells": cells, "states": {}, "buttons": {}, "pools": {}}
-        if sliders:
-            self.default_from_event(gid, sliders, cells)
+        # Sliders whose cells draw random numbers: the page load and every state run those cells
+        # again with the slider event's draws (page_load).
+        self._random = [s for s in sliders if self.draws_random(gid, s)]
+        self._touched = []
+        data = {"kind": "table", "sliders": sliders, "random_sliders": self._random, "cells": cells,
+                "states": {}, "buttons": {}, "pools": {}}
+        if self._random:
+            self.default_from_event(gid, cells)
+        # Sliders whose event changes the output also at the default value (a callback): after the
+        # reader moves them, the default position shows that, not the page load.
+        self._touched = [s for s in sliders if self.event_at_default_changes(gid, s, cells)]
         kinds = {b: self.button_kind(gid, b, sliders, default_state, cells) for b in buttons}
         listers = [b for b in buttons if kinds[b] == "list"]
-        # Figures ("cell:number") whose click history a slider event removes (marimo rebuilds them).
-        reset_by = self.figures_reset_by_sliders(gid, sliders, listers, cells)
+        targets = {b: self.button_targets(gid, b, sliders, default_state, cells, listers) for b in buttons}
+        # What a slider event resets (marimo rebuilds the state): the targets of the buttons whose
+        # effect it removes ("cell:number" figures, "cell:cell" whole cells), and their click counts.
+        reset_by, reset_buttons = self.slider_resets(gid, sliders, buttons, targets, cells)
         data["reset_by"] = {n: sorted(v) for n, v in reset_by.items()}
         if sliders:
             data["states"] = self.slider_states(gid, sliders, sizes, default_state, cells, data["pools"])
-        for name in sorted(buttons, key=lambda b: kinds[b] != "list"):  # lists first: fixed ones use their targets
+        for name in buttons:
             data["buttons"][name] = self.button_effects(gid, name, kinds[name], sliders, sizes, default_state,
-                                                        listers, cells, reset_by)
+                                                        listers, cells, targets)
+            data["buttons"][name]["reset_on"] = sorted(s for s, names in reset_buttons.items() if name in names)
         return data
 
-    def go_to_state(self, gid: str, sliders: list[str], state: tuple) -> None:
+    def page_load(self, gid: str) -> None:
+        """Go to the page load of the group: the first run, then the cells of the random sliders
+        run again with the slider event's draws (no callback runs: marimo runs none at page load)."""
         self.s.restore(self.base)
+        for name in self._random:
+            self.s.run_users(name, seed=rng.event_seed(gid, "slider"))
+
+    def go_to_state(self, gid: str, sliders: list[str], state: tuple) -> None:
+        """From the page load: the default events of the sliders in self._touched (a state is what
+        the reader sees after moving sliders), then the sliders that are not at their default value."""
+        self.page_load(gid)
+        for name in self._touched:
+            index = self.page.controls[name]["index"]
+            self.s.set_value(name, self.frontend_value(name, index), seed=rng.event_seed(gid, "slider"))
         for name, index in zip(sliders, state):
             if index != self.page.controls[name]["index"]:
                 self.s.set_value(name, self.frontend_value(name, index), seed=rng.event_seed(gid, "slider"))
 
-    def default_from_event(self, gid: str, sliders: list[str], cells: list[int]) -> None:
-        """At page load, show the cells as after slider events at the default values. The states use
-        the group's draws (event seeds); the first run used other draws."""
+    def event_at_default_changes(self, gid: str, name: str, cells: list[int]) -> bool:
+        """True when an event at the slider's default value changes the group's cells."""
+        self.page_load(gid)
+        before = self.snapshot(cells)
+        index = self.page.controls[name]["index"]
+        self.s.set_value(name, self.frontend_value(name, index), seed=rng.event_seed(gid, "slider"))
+        changed = self.snapshot(cells) != before
         self.s.restore(self.base)
-        for name in sliders:
-            index = self.page.controls[name]["index"]
-            self.s.set_value(name, self.frontend_value(name, index), seed=rng.event_seed(gid, "slider"))
+        return changed
+
+    def draws_random(self, gid: str, name: str) -> bool:
+        """True when the cells that use the slider draw random numbers."""
+        self.s.restore(self.base)
+        with rng.recording() as recorder:
+            self.s.run_users(name, seed=rng.event_seed(gid, "slider"))
+        self.s.restore(self.base)
+        return bool(recorder.calls)
+
+    def default_from_event(self, gid: str, cells: list[int]) -> None:
+        """At page load, show the cells with the draws of the slider events (page_load), so that
+        the states, which use those draws, agree with it."""
+        self.page_load(gid)
         for index in cells:
             out = self.rendered(index)
             if out is not None and (out.html != self.default[index].html or out.figures != self.default[index].figures
                                     or out.charts != self.default[index].charts):
-                self.set_default(index, out)
+                self.set_default(index, out, gid)
         self.s.restore(self.base)
 
     def slider_states(self, gid, sliders, sizes, default_state, cells, pools) -> dict:
@@ -284,7 +330,7 @@ class Builder:
         paths: dict[tuple[int, int], set] = {}
         replaced: set[int] = set()
         for state in itertools.product(*(range(s) for s in sizes)):
-            if state == default_state:
+            if state == default_state and not self._touched:
                 own[state] = {"cells": {}, "figures": {}}
                 continue
             with rng.recording() as recorder:
@@ -329,33 +375,55 @@ class Builder:
             states[key] = effect if dedupe[digest] == key else {"same_as": dedupe[digest]}
         return states
 
-    def figures_reset_by_sliders(self, gid, sliders, listers, cells) -> dict[str, set]:
-        """For each slider: the figures whose click history its event removes. A figure is reset
-        when, after the event, it is the same with and without earlier clicks."""
-        result: dict[str, set] = {name: set() for name in sliders}
-        if not listers:
-            return result
+    def snapshot(self, cells: list[int]) -> dict:
+        """What the reader sees in the cells: the text and the figures."""
+        out = {}
+        for i in cells:
+            rendered = self.rendered(i)
+            out[i] = None if rendered is None else (H.text_of(rendered.html), [f["figure"] for f in rendered.figures])
+        return out
+
+    def button_targets(self, gid, name, sliders, default_state, cells, listers) -> set[str]:
+        """What a click on the button changes: figures ("cell:number") and whole cells ("cell:cell")."""
+        history = tuple((b, 2) for b in listers if b != name)
+        targets = set()
+        for effect in self.click_sequence(gid, name, sliders, default_state, cells, 2, history):
+            for cell, change in effect.items():
+                if "cell" in change:
+                    targets.add(f"{cell}:cell")
+                targets |= {f"{cell}:{n}" for n in change.get("figures", {})}
+        return targets
+
+    def slider_resets(self, gid, sliders, buttons, targets, cells):
+        """For each slider: the targets that its event resets, and the buttons whose click count it
+        resets. A slider resets a button when, after the slider event, the cells are the same with
+        and without earlier clicks on the button (after 1 click and after 2 clicks): marimo rebuilt
+        the state. Clicks that change nothing (two toggles) tell nothing."""
+        reset_by: dict[str, set] = {name: set() for name in sliders}
+        reset_buttons: dict[str, set] = {name: set() for name in sliders}
         for name in sliders:
             other = self.frontend_value(name, self.other_index(name))
-            self.s.restore(self.base)
-            history_before = {i: self.figures(i) for i in cells}
-            for k in range(2):
-                for b in listers:
-                    self.s.set_value(b, 1, seed=rng.event_seed(gid, b, k))
-            clicked = {i: self.figures(i) for i in cells}
+            self.page_load(gid)
             self.s.set_value(name, other, seed=rng.event_seed(gid, "slider"))
-            with_history = {i: self.figures(i) for i in cells}
-            self.s.restore(self.base)
-            self.s.set_value(name, other, seed=rng.event_seed(gid, "slider"))
-            without_history = {i: self.figures(i) for i in cells}
-            for i in cells:
-                for number, fig in enumerate(with_history[i]):
-                    had_history = number < len(clicked[i]) and number < len(history_before[i]) \
-                        and clicked[i][number] != history_before[i][number]
-                    if had_history and number < len(without_history[i]) and fig == without_history[i][number]:
-                        result[name].add(f"{i}:{number}")
+            without = self.snapshot(cells)
+            for button in buttons:
+                if not targets[button]:
+                    continue
+                erased = []
+                for clicks in (1, 2):
+                    self.page_load(gid)
+                    before = self.snapshot(cells)
+                    for k in range(clicks):
+                        self.s.set_value(button, 1, seed=rng.event_seed(gid, button, k))
+                    if self.snapshot(cells) == before:
+                        continue
+                    self.s.set_value(name, other, seed=rng.event_seed(gid, "slider"))
+                    erased.append(self.snapshot(cells) == without)
+                if erased and all(erased):
+                    reset_by[name] |= targets[button]
+                    reset_buttons[name].add(button)
         self.s.restore(self.base)
-        return result
+        return reset_by, reset_buttons
 
     def click_effect(self, name: str, cells: list[int], seed: int) -> dict:
         """One click: figure operations, or a whole new cell when other parts of it change."""
@@ -401,7 +469,7 @@ class Builder:
             return "fixed"
         return "list"
 
-    def button_effects(self, gid, name, kind, sliders, sizes, default_state, listers, cells, reset_by) -> dict:
+    def button_effects(self, gid, name, kind, sliders, sizes, default_state, listers, cells, targets) -> dict:
         others = [b for b in listers if b != name]
         count = 1 if kind == "list" else 2
         history = tuple((b, 2) for b in others) if kind == "fixed" else ()
@@ -430,11 +498,14 @@ class Builder:
             for state in keyed_states:
                 effect = self.click_sequence(gid, name, sliders, state, cells, 1, history)[0]
                 store(_key(*(state[p] for p in relevant)), effect)
-            truncated = {f"{cell}:{n}" for cell, change in probe[0].items()
-                         for n, ops in change.get("figures", {}).items() if any(op["op"] == "truncate" for op in ops)}
+            # It resets a list button when it removes that button's traces (truncate, or new data
+            # for the whole figure) or replaces its cell.
+            cleared = {f"{cell}:{n}" for cell, change in probe[0].items()
+                       for n, ops in change.get("figures", {}).items()
+                       if any(op["op"] == "truncate" or (op["op"] == "set" and op["path"] == ["data"]) for op in ops)}
             replaced = {cell for cell, change in probe[0].items() if "cell" in change}
-            resets = sorted(b for b in listers if self._targets[b] & truncated
-                            or any(t.split(":")[0] in replaced for t in self._targets[b]))
+            resets = sorted(b for b in listers if targets[b] & cleared
+                            or any(t.split(":")[0] in replaced for t in targets[b]))
             return {"kind": "fixed", "keys": keys, "table": table, "resets": resets}
 
         numbers = _count_numbers(probe[0]) or 1
@@ -442,12 +513,7 @@ class Builder:
         for state in keyed_states:
             store(_key(*(state[p] for p in relevant)),
                   self.click_sequence(gid, name, sliders, state, cells, pool))
-        targets = {f"{cell}:{n}" for cell, change in probe[0].items() for n in change.get("figures", {})}
-        targets |= {f"{cell}:{n}" for cell, change in probe[0].items() if "cell" in change
-                    for n in range(len(self.default[int(cell)].figures))}
-        self._targets[name] = targets
-        return {"kind": "list", "keys": keys, "pool": pool, "table": table, "targets": sorted(targets),
-                "reset_on": sorted(s for s, figs in reset_by.items() if figs & targets)}
+        return {"kind": "list", "keys": keys, "pool": pool, "table": table, "targets": sorted(targets[name])}
 
     # ---- primitives ----
 

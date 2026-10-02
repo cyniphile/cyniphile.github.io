@@ -53,15 +53,17 @@ def test_steps_slider_uses_the_index(converted):
     _, _, _, model, _ = converted
     spec = model["controls"]["steps"]
     assert (spec["values"], spec["index"], spec["by_index"]) == ([0.1, 0.5, 1.0], 1, True)
-    assert spec["label_html"] == 'Scale <span class="math inline">\\ell</span>'
+    # mb-math, not math: Quarto's KaTeX script must not see label spans (mb.js renders them)
+    assert spec["label_html"] == 'Scale <span class="mb-math inline">\\ell</span>'
     assert set(group_of(converted, "steps")["states"]) == {"0", "1", "2"}
 
 
 def test_buttons_whose_clicks_differ_are_lists(converted):
     buttons = group_of(converted, "toggle_btn")["buttons"]
     assert buttons["resample_btn"]["kind"] == "list" and buttons["toggle_btn"]["kind"] == "list"
-    modes = [first_change(e)["figures"]["0"][0]["style"]["mode"] for e in buttons["toggle_btn"]["table"][""][:3]]
-    assert modes == ["lines", "markers", "lines"]
+    # one trace: the change is for that trace only (a path operation, not "restyle every trace")
+    ops = [first_change(e)["figures"]["0"][0] for e in buttons["toggle_btn"]["table"][""][:3]]
+    assert [(op["path"], op["value"]) for op in ops] == [(["data", 0, "mode"], m) for m in ("lines", "markers", "lines")]
 
 
 def test_slider_keeps_click_history_and_button_reads_slider(converted):
@@ -72,6 +74,14 @@ def test_slider_keeps_click_history_and_button_reads_slider(converted):
             assert all(op["op"] != "reset" for op in first_change(effect)["figures"]["0"])
     reset = group["buttons"]["reset_btn"]
     assert reset["kind"] == "fixed" and reset["keys"] == ["level"] and len(reset["table"]) == 3
+    # Reset replaces all traces (set ["data"]): the "New Sample" pool starts again
+    assert reset["resets"] == ["add_btn"]
+
+
+def test_page_load_runs_no_callback(converted):
+    _, _, _, model, _ = converted
+    (cell,) = group_of(converted, "level")["cells"]
+    assert "title" not in model["cells"][str(cell)]["figures"][0]["figure"].get("layout", {})
 
 
 def test_slider_that_changes_text_replaces_the_cell_in_every_state(converted):
@@ -92,8 +102,8 @@ def test_cell_error_is_shown_as_in_marimo(converted):
 
 def test_live_cells_run_in_marimo_order_with_their_imports(converted):
     group = group_of(converted, "editor")
-    order = [cell for cell, _ in group["run"]]
-    code = dict(group["run"])
+    order = [run[0] for run in group["run"]]
+    code = {run[0]: run[1] for run in group["run"]}
     assert "exec(editor.value" in code[order[0]] and "mo.ui.plotly" in code[order[1]]
     assert "import math" in group["setup"] and "TAU = math.tau" in group["setup"]
     assert "marimo" not in group["setup"]  # the browser's stand-in gives `mo`
