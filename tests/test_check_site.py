@@ -3,6 +3,7 @@ from pathlib import Path
 
 from check_site import (
     check_comments,
+    check_feed,
     check_page_scripts,
     check_image_sizes,
     check_internal_links,
@@ -185,8 +186,23 @@ def test_page_scripts_one_path_first_and_lazy_comments(tmp_path):
     write(tmp_path / "blog/voter-fraud/index.html", one_url + goat + giscus)
     write(tmp_path / "blog/topics/index.html", goat)
     write(tmp_path / "blog/old/redirect.html", "no scripts")
+    write(tmp_path / "blog/gp/live/index.html", "<head></head>")
     assert check_page_scripts(tmp_path) == [
         "blog/about/index.html: the one-path script must come before the GoatCounter tag",
+        "blog/gp/live/index.html: the live notebook has no GoatCounter tag",
         "blog/topics/index.html: the one-path script must come before the GoatCounter tag",
         "blog/voter-fraud/index.html: the comment frame must load lazily",
+    ]
+
+
+def test_feed_items_have_no_page_parts(tmp_path):
+    item = "<item><title>{title}</title><description><![CDATA[{html}]]></description></item>"
+    feed = "<rss><channel>" + item.format(title="Clean", html="<p>Text</p>") + item.format(
+        title="GP", html='<header class="site-header">blog</header><script>x</script><div class="mb-cell"></div>'
+    ) + "</channel></rss>"
+    write(tmp_path / "blog/index.xml", feed)
+    assert check_feed(tmp_path) == [
+        "blog/index.xml: item 'GP' has the site header",
+        "blog/index.xml: item 'GP' has a script",
+        "blog/index.xml: item 'GP' has an interactive island",
     ]

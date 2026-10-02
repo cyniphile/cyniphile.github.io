@@ -11,7 +11,8 @@ permissions:
 
 concurrency:
   group: pages-${{ github.ref }}
-  cancel-in-progress: true
+  # a new push to a pull request cancels the old run; a deploy of master is never cancelled
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:

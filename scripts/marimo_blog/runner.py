@@ -65,6 +65,10 @@ def topological_order(cells: list[CellInfo]) -> list[int]:
     return order
 
 
+class NotebookError(Exception):
+    """The notebook cannot be converted (for example, a cell raises when the notebook runs)."""
+
+
 class CellError:
     """The output of a cell that raised during a simulated event (marimo shows the error)."""
 
@@ -104,7 +108,13 @@ class Session:
             self._cell_objects = [d.cell for d in data]
             self.order = topological_order(self.cells)
             with self._in_notebook_dir():
-                outputs, defs = self.app.run()
+                try:
+                    outputs, defs = self.app.run()
+                except Exception as error:  # App.run stops at the first cell that raises
+                    raise NotebookError(
+                        f"the notebook raises {type(error).__name__} ({error}) when it runs; marimo shows the "
+                        f"error in that cell, but the converter needs a notebook that runs without errors "
+                        f"at page load (the traceback above names the cell)") from error
         except BaseException:
             self.close()
             raise

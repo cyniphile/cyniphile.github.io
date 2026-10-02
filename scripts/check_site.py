@@ -192,6 +192,23 @@ ONE_URL_SCRIPT = "history.replaceState"  # blog/_includes/one-url.html
 LAZY_GISCUS = 'script.dataset.loading = "lazy";'  # scripts/build.py lazy_giscus
 
 
+def check_feed(site_dir: Path) -> list[str]:
+    """Feed items are for feed readers: no site header, no scripts, no interactive islands."""
+    errors = []
+    for name in ("index.xml", "feed.xml"):
+        feed = site_dir / "blog" / name
+        if not feed.is_file():
+            continue
+        for item in ElementTree.parse(feed).getroot().iter("item"):
+            title = item.findtext("title") or "?"
+            description = item.findtext("description") or ""
+            for part, text in (("site-header", "the site header"), ("<script", "a script"),
+                               ('class="mb-cell"', "an interactive island")):
+                if part in description:
+                    errors.append(f"blog/{name}: item {title!r} has {text}")
+    return errors
+
+
 def check_page_scripts(site_dir: Path) -> list[str]:
     """In each blog page with the GoatCounter tag, the one-path script must come before the tag
     (GoatCounter and giscus read the address). A page with the giscus loader must load the comment
@@ -204,6 +221,8 @@ def check_page_scripts(site_dir: Path) -> list[str]:
             errors.append(f"{rel(page, site_dir)}: the one-path script must come before the GoatCounter tag")
         if "giscus.app/client.js" in text and LAZY_GISCUS not in text:
             errors.append(f"{rel(page, site_dir)}: the comment frame must load lazily")
+        if page.parent.name == "live" and page.name == "index.html" and tag < 0:
+            errors.append(f"{rel(page, site_dir)}: the live notebook has no GoatCounter tag")
     return errors
 
 
@@ -221,6 +240,7 @@ def main(argv: list[str] | None = None) -> int:
         *check_listing(args.site, slugs),
         *check_comments(args.site, slugs),
         *check_page_scripts(args.site),
+        *check_feed(args.site),
     ]
     for error in errors:
         print(f"ERROR: {error}", file=sys.stderr)

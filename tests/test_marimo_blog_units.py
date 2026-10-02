@@ -324,3 +324,23 @@ def test_live_stand_in_blocks_only_the_users_of_a_failed_cell():
     assert results["2"]["text"] == results["3"]["text"] == "An ancestor raised an exception (ValueError)"
     assert results["4"] == {"kind": "html", "html": "<pre>4</pre>"}
     assert json.loads(mb_live.run("2"))["3"] == {"kind": "html", "html": ""}
+
+
+def test_a_notebook_that_raises_at_page_load_gives_a_clear_error(tmp_path):
+    from marimo_blog.runner import NotebookError, Session
+    notebook = tmp_path / "notebook.py"
+    notebook.write_text(
+        "import marimo\n\napp = marimo.App()\n\n\n"
+        "@app.cell\ndef _():\n    x = 1 / 0\n    return (x,)\n\n\n"
+        'if __name__ == "__main__":\n    app.run()\n', encoding="utf-8")
+    with pytest.raises(NotebookError, match="raises ZeroDivisionError .* runs without errors at page load"):
+        Session(notebook)
+
+
+def test_filled_ops_have_the_same_order_in_each_run():
+    paths = {("data", 0, "z"), ("layout", "title", "text"), ("data", 0, "y"), ("layout", "width")}
+    default = {"data": [{"y": [1], "z": [2]}], "layout": {"title": {"text": "t"}, "width": 3}}
+    first = O.filled_ops(default, [], paths)
+    assert [op["path"] for op in first] == [["layout", "width"], ["data", 0, "y"], ["data", 0, "z"],
+                                            ["layout", "title", "text"]]
+    assert O.filled_ops(default, [], set(reversed(sorted(paths)))) == first

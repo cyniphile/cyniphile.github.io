@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import html
+import json
 from pathlib import Path
 from urllib.parse import unquote
 
@@ -27,10 +28,20 @@ def output_file(site_dir: Path, url_path: str) -> Path:
     return site_dir / relative
 
 
-def redirect_page(new_path: str) -> str:
-    """Return an HTML page that sends browsers and search engines to new_path."""
+# A meta refresh drops the fragment of the old link ("#section"), so a script moves the reader
+# first, with the fragment. The old Topics page filtered with "#<category>"; the new one with
+# "#category=<category>".
+FRAGMENT_PREFIX: dict[str, str] = {"/blog/categories/": "category="}
+
+
+def redirect_page(new_path: str, fragment_prefix: str = "") -> str:
+    """Return an HTML page that sends browsers and search engines to new_path. The meta refresh
+    is for browsers without JavaScript."""
     target = html.escape(new_path, quote=True)
     canonical = html.escape(SITE_URL + new_path, quote=True)
+    fragment = ("location.hash" if not fragment_prefix else
+                f'(location.hash ? "#" + {json.dumps(fragment_prefix)} + location.hash.slice(1) : "")')
+    script = f"<script>location.replace({json.dumps(new_path)} + {fragment});</script>"
     return (
         "<!DOCTYPE html>\n"
         '<html lang="en">\n'
@@ -38,6 +49,7 @@ def redirect_page(new_path: str) -> str:
         '<meta charset="utf-8">\n'
         "<title>Page moved</title>\n"
         f'<link rel="canonical" href="{canonical}">\n'
+        f"{script}\n"
         f'<meta http-equiv="refresh" content="0; url={target}">\n'
         "</head>\n"
         "<body>\n"
@@ -56,6 +68,6 @@ def write_redirects(site_dir: Path, redirects: dict[str, str] = REDIRECTS) -> li
     for old, new in redirects.items():
         page = output_file(site_dir, old)
         page.parent.mkdir(parents=True, exist_ok=True)
-        page.write_text(redirect_page(new), encoding="utf-8")
+        page.write_text(redirect_page(new, FRAGMENT_PREFIX.get(old, "")), encoding="utf-8")
         written.append(page)
     return written

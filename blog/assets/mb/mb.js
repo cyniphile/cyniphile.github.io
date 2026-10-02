@@ -22,20 +22,37 @@ const BUNDLE_TYPES = {
   cartesian: ["bar", "box", "contour", "heatmap", "histogram", "histogram2d", "histogram2dcontour",
     "image", "pie", "scatter", "scatterternary", "violin"],
 };
-let plotlyPromise, plotlyBundle;
+// A download that fails (for example a short network drop on a phone) is tried again on the next
+// call: the cached promise goes away when it rejects.
+function retrying(promise, forget) {
+  return promise.catch((error) => {
+    forget();
+    throw error;
+  });
+}
+
+let plotlyPromise, plotlyBundle, plotlyTries = 0;
 function plotlyUrl(bundle) {
-  return `https://cdn.plot.ly/plotly-${bundle === "full" ? "" : `${bundle}-`}${MODEL.plotly}.min.js`;
+  // a new URL after a failure: the browser keeps a failed module import for its URL
+  const again = plotlyTries ? `?try=${plotlyTries}` : "";
+  return `https://cdn.plot.ly/plotly-${bundle === "full" ? "" : `${bundle}-`}${MODEL.plotly}.min.js${again}`;
 }
 function loadPlotly(types = []) {
   const bundle = MODEL.plotlyBundle || "full";
   const missing = bundle !== "full" && types.some((t) => !BUNDLE_TYPES[bundle].includes(t));
+  const forget = () => {
+    plotlyPromise = null;
+    plotlyBundle = undefined;
+    plotlyTries += 1;
+  };
   if (missing && plotlyBundle !== "full") {
     plotlyBundle = "full";
-    plotlyPromise = (plotlyPromise || Promise.resolve()).then(() => import(plotlyUrl("full"))).then(() => window.Plotly);
+    plotlyPromise = retrying((plotlyPromise || Promise.resolve()).then(() => import(plotlyUrl("full")))
+      .then(() => window.Plotly), forget);
   }
   if (!plotlyPromise) {
     plotlyBundle = bundle;
-    plotlyPromise = import(plotlyUrl(bundle)).then(() => window.Plotly);
+    plotlyPromise = retrying(import(plotlyUrl(bundle)).then(() => window.Plotly), forget);
   }
   return plotlyPromise;
 }
@@ -50,14 +67,15 @@ function loadScript(src) {
   });
 }
 
+// Exact versions (as for KaTeX and Plotly): a new release must not change the charts.
 let vegaPromise;
 function loadVega() {
-  vegaPromise ??= (async () => {
-    await loadScript("https://cdn.jsdelivr.net/npm/vega@6");
-    await loadScript("https://cdn.jsdelivr.net/npm/vega-lite@6");
-    await loadScript("https://cdn.jsdelivr.net/npm/vega-embed@7");
+  vegaPromise ??= retrying((async () => {
+    await loadScript("https://cdn.jsdelivr.net/npm/vega@6.4.0");
+    await loadScript("https://cdn.jsdelivr.net/npm/vega-lite@6.4.3");
+    await loadScript("https://cdn.jsdelivr.net/npm/vega-embed@7.3.0");
     return window.vegaEmbed;
-  })();
+  })(), () => (vegaPromise = null));
   return vegaPromise;
 }
 
@@ -68,7 +86,7 @@ function loadVega() {
 const KATEX = "https://cdn.jsdelivr.net/npm/katex@0.18.9/dist"; // as KATEX_VERSION in scripts/build.py
 let katexPromise;
 function loadKatex() {
-  katexPromise ??= (async () => {
+  katexPromise ??= retrying((async () => {
     if (document.readyState === "loading") {
       await new Promise((resolve) => document.addEventListener("DOMContentLoaded", resolve, { once: true }));
     }
@@ -81,7 +99,7 @@ function loadKatex() {
       await loadScript(`${KATEX}/katex.min.js`);
     }
     return window.katex;
-  })();
+  })(), () => (katexPromise = null));
   return katexPromise;
 }
 
@@ -138,10 +156,18 @@ function whenNear(div, show) {
 }
 
 let drawQueue = Promise.resolve();
+// Run a drawing task after the earlier ones, one per animation frame. The returned promise
+// rejects when the task fails; the queue goes on.
 function queueDraw(task) {
-  drawQueue = drawQueue.then(() => new Promise(requestAnimationFrame)).then(task)
-    .catch((error) => console.error("mb:", error));
-  return drawQueue;
+  const run = drawQueue.then(() => new Promise(requestAnimationFrame)).then(task);
+  drawQueue = run.catch((error) => console.error("mb:", error));
+  return run;
+}
+
+// After a failed drawing (the library did not load), draw again when the element comes near the
+// screen again, a few seconds later (not at once: the network can still be down).
+function drawLater(div, show) {
+  setTimeout(() => whenNear(div, show), 3000);
 }
 
 // A figure has at most one queued redraw; it draws the latest JSON (a slider drag changes a
@@ -158,6 +184,14 @@ function drawFigure(key) {
     const Plotly = await loadPlotly((entry.fig.data || []).map((trace) => trace.type || "scatter"));
     await Plotly.react(entry.div, entry.fig.data || [], entry.fig.layout || {}, entry.config);
   });
+  entry.pending.catch(() => {
+    entry.pending = null;
+    entry.near = false;
+    drawLater(entry.div, () => {
+      entry.near = true;
+      drawFigure(key);
+    });
+  });
   return entry.pending;
 }
 
@@ -165,12 +199,13 @@ function drawChart(key, div, spec) {
   let resolveView;
   charts.set(key, new Promise((resolve) => (resolveView = resolve)));
   div.style.minHeight = `${(spec.height ?? 300) + 50}px`;
-  whenNear(div, () => queueDraw(async () => {
+  const show = () => queueDraw(async () => {
     const vegaEmbed = await loadVega();
     const result = await vegaEmbed(div, core.resolve(spec, tables), { renderer: "canvas" });
     div.style.minHeight = "";
     resolveView(result.view);
-  }));
+  }).catch(() => drawLater(div, show));
+  whenNear(div, show);
 }
 
 function hydrate(cellEl, payload, firstTime) {
@@ -238,12 +273,31 @@ function applyEffect(effect, tablesForGroup) {
 function loadGroup(gid) {
   if (!groupData.has(gid)) {
     const info = MODEL.groups[gid];
-    groupData.set(gid, fetch(new URL(info.src, document.baseURI)).then((r) => {
+    groupData.set(gid, retrying(fetch(new URL(info.src, document.baseURI)).then((r) => {
       if (!r.ok) throw new Error(`cannot load ${info.src}`);
       return r.json();
-    }).then((data) => ({ data, tables: { ...tables, arrays: data.arrays || {}, pools: data.pools || {} } })));
+    }).then((data) => ({ data, tables: { ...tables, arrays: data.arrays || {}, pools: data.pools || {} } })),
+    () => groupData.delete(gid)));
   }
   return groupData.get(gid);
+}
+
+// A short note in the widget when an event fails (most often: its data did not load). The next
+// event tries again, and a successful event removes the note.
+function failureNote(gid, failed) {
+  const cellEl = (MODEL.groups[gid]?.cells || []).map(cellElement).find(Boolean);
+  if (!cellEl) return;
+  let note = cellEl.querySelector(":scope > .mb-load-error");
+  if (!failed) {
+    note?.remove();
+    return;
+  }
+  if (!note) {
+    note = document.createElement("p");
+    note.className = "mb-load-error";
+    note.textContent = "This widget did not work. Check the connection: the next change tries again.";
+    cellEl.append(note);
+  }
 }
 
 function stateOf(gid) {
@@ -268,7 +322,11 @@ function emit(name, value) {
     const group = await loadGroup(gid);
     const handler = { table: tableEvent, sampler: samplerEvent, live: liveEvent }[group.data.kind];
     await handler(group, state, name, value);
-  }).catch((error) => console.error("mb:", error));
+    failureNote(gid, false);
+  }).catch((error) => {
+    console.error("mb:", error);
+    failureNote(gid, true);
+  });
 }
 
 function tableEvent(group, state, name, value) {
@@ -345,7 +403,7 @@ async function samplerEvent(group, state, name, value) {
 
 let pythonPromise;
 function loadPython(data, status) {
-  pythonPromise ??= (async () => {
+  pythonPromise ??= retrying((async () => {
     status("Loading Python (first run only)…");
     await loadScript(`https://cdn.jsdelivr.net/pyodide/v${data.pyodide}/full/pyodide.js`);
     const py = await window.loadPyodide();
@@ -354,7 +412,7 @@ function loadPython(data, status) {
     py.FS.writeFile("/home/pyodide/mb_live.py", shim);
     py.runPython("import sys; sys.path.insert(0, '/home/pyodide'); import mb_live");
     return py;
-  })();
+  })(), () => (pythonPromise = null));
   return pythonPromise;
 }
 

@@ -234,6 +234,13 @@ main.content .mb-matrix td.mb-dragging {
   font-weight: 400;
 }
 
+/* an event failed (mb.js failureNote) */
+.mb-load-error {
+  margin: 0.25rem 0;
+  font: 13px/1.4 "PT Sans", sans-serif;
+  color: rgb(185, 28, 28);
+}
+
 /* live code: an error or another output replaces the figure until the next run */
 .mb-live-other .mb-plot {
   display: none;

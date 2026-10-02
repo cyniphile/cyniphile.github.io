@@ -25,6 +25,19 @@ def test_redirect_page_points_to_the_new_path():
     assert '<a href="/blog/abortion/">' in page
 
 
+def test_redirect_page_keeps_the_fragment_of_the_old_link():
+    page = redirect_page("/blog/biology-rust/")
+    # the script runs before the meta refresh, which would drop "#section"
+    assert page.index('<script>location.replace("/blog/biology-rust/" + location.hash);</script>') < page.index("refresh")
+
+
+def test_old_topics_links_filter_the_new_topics_page(tmp_path):
+    write_redirects(tmp_path)
+    page = output_file(tmp_path, "/blog/categories/").read_text(encoding="utf-8")
+    assert ('location.replace("/blog/topics/" + (location.hash ? "#" + "category=" + location.hash.slice(1) : ""))'
+            in page)
+
+
 def test_the_old_topics_page_redirects_to_the_new_topics_page():
     assert REDIRECTS["/blog/categories/"] == "/blog/topics/"
 

@@ -19,7 +19,7 @@ This repo builds the full site:
 ## Write an interactive post (a marimo notebook)
 
 1. Make the folder `blog/<slug>/` with the marimo notebook `notebook.py` and the file `post.yml` (`title`, `date`, `description`, `categories`, and optionally `image`). Put the notebook's packages in its PEP 723 header (see `blog/gaussian-processes/notebook.py`).
-2. Edit the notebook with `uv run marimo edit blog/<slug>/notebook.py`.
+2. Edit the notebook with `uv run marimo edit blog/<slug>/notebook.py`. The notebook must run without errors when it loads.
 3. Run `uv run scripts/marimo_to_blog.py blog/<slug>`. It writes `index.qmd` and `widgets/*.json`. Do not edit these files. Read the warnings. A warning names a widget that does not act as in the notebook. A warning can also name a marimo element that the blog shows without interaction.
 4. Commit `notebook.py`, `post.yml`, `index.qmd` and `widgets/`. Push to `master`.
 

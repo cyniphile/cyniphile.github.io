@@ -84,6 +84,9 @@ editor, which loads Python only when the reader runs code. No per-post JavaScrip
 
 ## Supported and not supported
 
+The notebook must run without errors at page load: marimo shows such an error in its cell, but
+the converter stops with a clear message (`NotebookError`). Errors in reader events are supported.
+
 Supported marimo features: `mo.md`, `mo.vstack`/`hstack`, `mo.Html`, `mo.show_code`, `mo.ui.plotly`
 (static), Altair charts (also `mo.ui.altair_chart`, without its selection), `mo.ui.slider` (also with
 `steps`), `mo.ui.button`, `mo.state`, `mo.ui.matrix` (up to 4×4, when its value feeds
@@ -103,9 +106,9 @@ combinations per group; a sampled array becomes a browser recipe only for `np.ra
 - The code editor is a plain text area (no syntax colors) and needs a Python download on first run.
 - A state is a function of the slider positions. Output that depends on the order or number of
   slider events (a callback that appends to a list) differs from marimo; the check reports it.
-- In a group with two or more sliders whose callbacks change the output at the default value,
-  a state includes the default events of all of them, also of sliders that the reader did not
-  move; the check reports a visible difference.
+- A slider whose callback changes the output also at its default value: each state of its group
+  includes that default event, also when the reader moved only another slider of the group. Then
+  the blog shows the callback's result and marimo does not; the check reports the difference.
 
 ## Verification (after each conversion)
 

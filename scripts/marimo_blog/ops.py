@@ -12,6 +12,7 @@ Operations on one figure (the runtime applies them, then calls Plotly.react):
 from __future__ import annotations
 
 import base64
+import json
 import math
 
 import numpy as np
@@ -202,7 +203,7 @@ def filled_ops(default: dict, own: list[dict], paths: set[tuple]) -> list[dict]:
     parents before children, then this state's own operations."""
     own_paths = {tuple(op["path"]) for op in own}
     fillers = []
-    for path in sorted(paths, key=len):
+    for path in sorted(paths, key=lambda path: (len(path), json.dumps(path))):  # the same order in each run
         if path in own_paths:
             continue
         value = get_path(default, path)

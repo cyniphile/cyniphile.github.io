@@ -153,17 +153,17 @@ To see the full site: run `uv run scripts/build.py`, then `python -m http.server
 
 The same script runs on the laptop and in CI:
 1. Delete `_site/`.
-2. Run `quarto render blog`. Quarto writes `blog/_site/`. Copy it to `_site/blog/`.
-3. For each `blog/*/notebook.py`: convert it to `index.qmd` when it is out of date (before the Quarto render), and run `marimo export html-wasm --mode run --show-code --execute` to `_site/blog/<slug>/live/index.html` (then delete the `CLAUDE.md` that marimo writes next to it).
+2. Run `quarto render blog`. Quarto writes `blog/_site/`. Copy it to `_site/blog/`. Pin the KaTeX version, add lazy loading to Quarto's giscus loader, and list each page in `sitemap.xml` with its `.../` URL (Quarto writes `.../index.html`).
+3. For each `blog/*/notebook.py`: convert it to `index.qmd` when it is out of date (before the Quarto render), and run `marimo export html-wasm --mode run --show-code --execute --no-sandbox` (with the Python of the build, so the versions come from `uv.lock` and marimo does not edit `notebook.py`) to `_site/blog/<slug>/live/index.html`. Then delete the `CLAUDE.md` that marimo writes next to it, and add the one-path script and the GoatCounter tag to the page.
 4. Copy `site-root/` to `_site/`.
-5. Write the redirect pages from `scripts/redirects.py`. If a real page already exists at an old path, stop the build.
-6. Copy `_site/blog/index.xml` to `_site/blog/feed.xml`.
+5. Write the redirect pages from `scripts/redirects.py`. If a real page already exists at an old path, stop the build. A redirect page keeps the fragment of the old link (`#section`); the old Topics links (`#<category>`) open the new Topics filter (`#category=<category>`).
+6. Clean the feed items for feed readers: no site header, scripts or styles; each interactive figure is a link to the post; relative links become absolute. Copy `_site/blog/index.xml` to `_site/blog/feed.xml`.
 7. Run `scripts/check_site.py`.
 
 ### 6.4 CI (`.github/workflows/publish.yml`)
 
 - A push to `master`: install Quarto 1.10.18, uv and Node.js, run `uv sync --locked` (it stops when `uv.lock` does not match `pyproject.toml`), run `uv run pytest`, run `scripts/build.py`, then deploy `_site` with `actions/upload-pages-artifact` and `actions/deploy-pages`.
-- A pull request: the same build and checks, with no deploy.
+- A pull request: the same build and checks, with no deploy. A new push to a pull request cancels its old run; a deploy of `master` is never cancelled.
 - Python and marimo versions come from `uv.lock`.
 
 ### 6.5 Errors

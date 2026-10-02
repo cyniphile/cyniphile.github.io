@@ -29,6 +29,8 @@ format:
   html:
     # One light theme: Bootstrap and blog.scss. There is no dark mode.
     theme: [default, blog.scss]
+    # <link rel="canonical"> with the ".../" form of each page (site-url + folder)
+    canonical-url: true
     highlight-style: dracula
     html-math-method: katex
     toc: false
