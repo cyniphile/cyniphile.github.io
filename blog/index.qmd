@@ -1,0 +1,22 @@
+---
+comments: false
+pagetitle: "Blog"
+listing:
+  contents:
+    - "*/index.qmd"
+  exclude:
+    title: "{About,Subscribe,Topics}"
+  sort: "date desc"
+  type: default
+  categories: false
+  sort-ui: false
+  filter-ui: false
+  fields: [image, title, description, date]
+  image-align: left
+  date-format: "MMM D, YYYY"
+  feed:
+    items: 100
+page-layout: full
+title-block-banner: false
+toc: false
+---

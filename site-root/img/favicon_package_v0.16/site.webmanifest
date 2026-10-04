@@ -1,9 +1,9 @@
 {
-    "name": "",
-    "short_name": "",
+    "name": "Luke Schiefelbein",
+    "short_name": "Luke S.",
     "icons": [
         {
-            "src": "/android-chrome-144x144.png",
+            "src": "/img/favicon_package_v0.16/android-chrome-144x144.png",
             "sizes": "144x144",
             "type": "image/png"
         }

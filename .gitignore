@@ -1,0 +1,15 @@
+# Build output
+/_site/
+/blog/_site/
+/blog/.quarto/
+**/*.quarto_ipynb
+
+# Python
+.venv/
+__pycache__/
+.pytest_cache/
+
+# Local tools
+.DS_Store
+.claude/worktrees/
+__marimo__/

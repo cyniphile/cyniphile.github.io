@@ -1,0 +1,68 @@
+project:
+  type: website
+  render:
+    - "**/*.qmd"
+  # The widget runtime of posts converted from marimo notebooks (scripts/marimo_to_blog.py)
+  resources:
+    - "assets/mb/*"
+
+website:
+  title: "Luke Schiefelbein"
+  site-url: https://www.lukeschiefelbein.com/blog
+  description: "Luke Schiefelbein writes about science, code and other things."
+  open-graph: true
+  twitter-card:
+    creator: "@dj_rump_roast"
+  # No search and no navigation bar: the blog has the look of the old fastpages
+  # blog (see blog.scss). The footer has the old links, without Search.
+  search: false
+  page-footer:
+    right:
+      - text: About
+        href: about/index.qmd
+      - text: Subscribe
+        href: subscribe/index.qmd
+      - text: Topics
+        href: topics/index.qmd
+
+format:
+  html:
+    # One light theme: Bootstrap and blog.scss. There is no dark mode.
+    theme: [default, blog.scss]
+    # <link rel="canonical"> with the ".../" form of each page (site-url + folder)
+    canonical-url: true
+    highlight-style: dracula
+    html-math-method: katex
+    toc: false
+    code-fold: true
+    date-format: "MMM D, YYYY"
+    # No "Footnotes" heading: the old pages had none.
+    appendix-style: none
+    # Quarto reads a link that starts with "/" as a path from this folder (the
+    # blog is /blog/ on the site). So "/" is the blog home. The favicon links
+    # in head.html start with "/../img/", which Quarto changes to "../../img/"
+    # (from a post), a path to /img/ of the whole site.
+    include-in-header:
+      - _includes/one-url.html  # first: it must run before GoatCounter and giscus
+      - _includes/goatcounter.html
+      - _includes/head.html
+    include-before-body: _includes/header.html
+    template-partials:
+      - _partials/title-block.html
+
+execute:
+  freeze: auto
+
+# Comments on posts (giscus: GitHub Discussions of this repo, category Announcements). The IDs
+# are the values that the configurator on giscus.app gives. Pages that are not posts set
+# "comments: false"; scripts/check_site.py checks both. The thread of a post is its path, for
+# example "blog/abortion/" (_includes/one-url.html gives each page one path). Quarto 1.10.18
+# ignores "loading: lazy", so scripts/build.py adds lazy loading to Quarto's giscus loader.
+comments:
+  giscus:
+    repo: cyniphile/cyniphile.github.io
+    repo-id: "MDEwOlJlcG9zaXRvcnkyNTg0NTEzOA=="
+    category: "Announcements"
+    category-id: "DIC_kwDOAYpdks4DG2a6"
+    mapping: pathname
+    reactions-enabled: true

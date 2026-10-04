@@ -1,0 +1,252 @@
+/* Blog widgets for posts converted from marimo notebooks. The controls copy marimo's look
+   (values measured on the marimo page of the GP post, 2026-10-01). */
+
+.mb-cell {
+  margin: 1rem 0;
+}
+
+.mb-plot {
+  width: 100%;
+  min-height: 100px;
+}
+
+/* slider: label + track 130 x 7 px, blue fill, white round handle */
+.mb-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0.25rem 0;
+  font: 500 14.4px/25.2px "PT Sans", sans-serif;
+  color: rgb(15, 23, 42);
+}
+.mb-control label {
+  margin: 0;
+}
+.mb-control input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 130px;
+  height: 7px;
+  margin: 0;
+  border-radius: 9999px;
+  cursor: pointer;
+  background: linear-gradient(rgb(59, 130, 246), rgb(59, 130, 246)) 0 / var(--fill, 0%) 100% no-repeat,
+    rgb(226, 232, 240);
+}
+.mb-control input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid rgb(59, 130, 246);
+}
+.mb-control input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid rgb(59, 130, 246);
+}
+
+/* buttons: 25 px high, PT Sans 14.4 px, radius 6 px */
+.mb-btn {
+  font: 500 14.4px/1 "PT Sans", sans-serif;
+  height: 25px;
+  padding: 0 7.2px;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: rgba(217, 217, 217, 0.4) 1px 1px 2px 0px, rgba(64, 64, 64, 0.05) 0px 0px 2px 0px;
+}
+.mb-btn-success {
+  background: rgb(70, 167, 88);
+  color: rgb(251, 254, 251);
+  border: 1px solid rgb(42, 126, 59);
+}
+.mb-btn-danger {
+  background: rgb(229, 72, 77);
+  color: rgb(255, 252, 252);
+  border: 1px solid rgb(206, 44, 49);
+}
+.mb-btn-neutral,
+.mb-btn-warn {
+  background: #fff;
+  color: rgb(15, 23, 42);
+  border: 1px solid rgb(226, 232, 240);
+}
+.mb-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* matrix: the label, then blue monospace numbers in square brackets; drag a number sideways to
+   change it */
+.mb-matrix {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font: 500 14.4px/25.2px "PT Sans", sans-serif;
+  color: rgb(15, 23, 42);
+}
+.mb-matrix-box {
+  display: inline-block;
+  position: relative;
+  padding: 0 6px;
+}
+.mb-matrix-box::before,
+.mb-matrix-box::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  border: 1.5px solid rgb(15, 23, 42);
+}
+.mb-matrix-box::before {
+  left: 0;
+  border-right: none;
+}
+.mb-matrix-box::after {
+  right: 0;
+  border-left: none;
+}
+/* "main.content" in the selectors: the blog's post tables (main.content table ...) must not
+   change the matrix */
+main.content .mb-matrix table,
+.mb-matrix table {
+  display: table;
+  width: auto;
+  max-width: none;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin: 0;
+  overflow: visible;
+  font: 14px/20px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+  -webkit-user-select: none;
+}
+main.content .mb-matrix table tr:nth-child(n),
+.mb-matrix tr {
+  background: transparent;
+}
+main.content .mb-matrix td,
+.mb-matrix td {
+  min-width: 56px;
+  height: 29px;
+  padding: 0 8px;
+  font-size: 14px;
+  text-align: center;
+  vertical-align: middle;
+  color: rgb(11, 104, 203);
+  background: transparent;
+  cursor: ew-resize;
+  touch-action: none;
+  border: none;
+  border-radius: 4px;
+}
+main.content .mb-matrix td:hover,
+main.content .mb-matrix td.mb-dragging {
+  background: rgb(241, 245, 249);
+}
+.mb-matrix td.mb-disabled {
+  color: rgb(100, 116, 139);
+  cursor: default;
+}
+
+/* shown code and the code editor (light, like marimo's editor) */
+.mb-code,
+.mb-editor textarea {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 8px 10px;
+  font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: rgb(15, 23, 42);
+  background: #fff;
+  border: 1px solid rgb(226, 232, 240);
+  border-radius: 6px;
+  white-space: pre;
+  overflow-x: auto;
+}
+.mb-editor textarea {
+  resize: vertical;
+  tab-size: 4;
+}
+.mb-editor-status {
+  min-height: 1.4em;
+  font: 13px/1.4 "PT Sans", sans-serif;
+  color: rgb(100, 116, 139);
+}
+.mb-error {
+  margin: 0.5rem 0;
+  padding: 8px 10px;
+  font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: rgb(185, 28, 28);
+  background: rgb(254, 242, 242);
+  border-radius: 6px;
+  white-space: pre-wrap;
+}
+
+/* Vega-Lite charts (Altair) have a fixed width: on a narrow screen they scale down to the column */
+.mb-chart {
+  max-width: 100%;
+}
+.mb-chart.vega-embed {
+  box-sizing: border-box;
+}
+.mb-chart .chart-wrapper {
+  max-width: 100%;
+}
+.mb-chart svg {
+  max-width: 100%;
+  height: auto;
+}
+.mb-chart canvas {
+  max-width: 100%;
+  height: auto !important; /* Vega sets the pixel height inline */
+}
+
+/* A control that the converter could not make interactive (see mb.js disableControl), and a
+   marimo input that the blog has no version of (html.py unsupported_note) */
+.mb-static {
+  opacity: 0.6;
+}
+.mb-unsupported {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0.25rem 0;
+  font: 500 14.4px/25.2px "PT Sans", sans-serif;
+  color: rgb(15, 23, 42);
+}
+.mb-unsupported-value {
+  padding: 0 8px;
+  color: rgb(100, 116, 139);
+  border: 1px solid rgb(226, 232, 240);
+  border-radius: 6px;
+}
+.mb-unsupported .mb-table {
+  flex-basis: 100%;
+  font-weight: 400;
+}
+
+/* an event failed (mb.js failureNote) */
+.mb-load-error {
+  margin: 0.25rem 0;
+  font: 13px/1.4 "PT Sans", sans-serif;
+  color: rgb(185, 28, 28);
+}
+
+/* live code: an error or another output replaces the figure until the next run */
+.mb-live-other .mb-plot {
+  display: none;
+}
+.mb-live-link {
+  display: inline-block;
+  margin-left: 8px;
+  font: 13px/1.4 "PT Sans", sans-serif;
+}

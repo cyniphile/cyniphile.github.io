@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>404: Not Found</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="/img/favicon_package_v0.16/favicon-32x32.png">
+  <script data-goatcounter="https://cynphile.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+  <style>
+    body { margin: 0 16px; }
+    #v-ascii .art { font-family: "Courier New", Courier, monospace; white-space: pre; overflow-x: auto; }
+    #v-ascii .message { font-size: 23px; }
+    #v-gif { margin: 10px auto; max-width: 600px; text-align: center; font-family: Helvetica, Arial, sans-serif; }
+    #v-gif h1 { margin: 30px 0; font-size: 4em; line-height: 1; letter-spacing: -1px; }
+    #v-gif video, #v-gif img { max-width: 100%; height: auto; }
+  </style>
+</head>
+<body>
+<div id="v-ascii">
+<div class="art">
+
+      ___________________          __________________________________
+    .'                   \        / Inquiry is fatal to certainty.   \
+   |                      \       \                 -- Will Durant   /
+  /;~~~~~~L~A~S~~V~E~G~A~S~\       ----------------------------------
+  |_________________________;
+  .mm ',                     ',
+  mMM   '.                     ',
+  mM)    ,%=====================`
+ =MM====+OOO000OOO   OOOO000OO
+  (@)    OOO0000OO . OO000OOOO
+   |      0000OOO , \ O000OOO          ~    ~ ~
+    \.            '..'     .       ~ ~ ~  ~
+     \                    .       ~  ~  ~ ~
+      ',           ____  .       ~ ~ ~  ~ ~
+      |  .        '---\\'       ~~~ ~~ ~
+      |    ' .        ,\\     ~~~ ~~
+     /Yy       ' .___.  \\  ~~ ~
+    /YYYy           yYy\ **~
+.uUUU\YYYy          YYYY\u.
+UUUUUU\YYYYy        YYYY/UUUUuu.
+</div>
+<div class="message">
+<h1>404: Not Found</h1>
+<h2>Return to <a href="/">lukeschiefelbein.com</a></h2>
+</div>
+</div>
+
+<div id="v-gif" hidden>
+  <h1>404</h1>
+  <p><strong>Page not found :(</strong></p>
+  <video data-src="/img/404-fire.mp4" autoplay loop muted playsinline width="600" height="338"></video>
+  <p><a href="/">Return to lukeschiefelbein.com</a></p>
+</div>
+
+<script>
+  // Show one of the two versions at random. Load the video only for version B.
+  if (Math.random() < 0.5) {
+    const version = document.getElementById("v-gif");
+    const media = version.querySelector("[data-src]");
+    media.src = media.dataset.src;
+    document.getElementById("v-ascii").hidden = true;
+    version.hidden = false;
+  }
+</script>
+</body>
+</html>

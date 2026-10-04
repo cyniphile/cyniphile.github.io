@@ -1,0 +1,100 @@
+---
+title: The Slant Fueling The Abortion War Must End
+description: The vitriolic Abortion War is founded on a lack of communication that’s only getting worse. Partisan rhetoric dominates our news media and conversations. What can we do to move forward?
+date: '2020-10-20'
+categories:
+- abortion
+- politics
+keywords:
+- abortion
+- election
+- Trump
+- Barrett
+image: abortion-hurts-women-32676869635.jpg
+---
+
+![Which sign makes you angry? Photo: James McNellis from Washington, DC, United States. https://commons.wikimedia.org/wiki/File:Abortion_Hurts_Women_(32676869635).jpg)](https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/Abortion_Hurts_Women_%2832676869635%29.jpg/1280px-Abortion_Hurts_Women_%2832676869635%29.jpg){fig-alt="abortion"}
+
+
+Election time is upon us and abortion is both as important and as divisive as ever. The debate over Trump’s nomination of Amy Coney Barret to the Supreme Court revolved heavily around her probable pro-life[^1]  stance. Meanwhile, in the first presidential debate, Joe Biden explicitly left open the possibility of [packing the court](https://edition.cnn.com/2020/09/30/politics/joe-biden-court-packing/index.html) in response. 
+
+
+Abortion comes with such a permissive license to righteous anger that most people avoid the festering topic. No wonder a [Gallup poll]( https://news.gallup.com/poll/1576/abortion.aspx) indicates that in the past 25 years the American people have only gotten more divided on the issue, of late jittering around a 50-50 split between pro-life and pro-choice. Facebook feeds are crawling with memes about Bible-thumping, misogynistic white men, or organ harvesting Mengeles at Planned Parenthood. In the abortion debate, once you choose a side, the 150 million people in this country with the opposing view suddenly become some mix of stupid and Satan. 
+
+![Chart: https://news.gallup.com/poll/1576/abortion.aspx](https://content.gallup.com/origin/gallupinc/GallupSpaces/Production/Cms/POLL/902aelfr70k9wvxxkig2fg.png){fig-alt="abortion split"}
+
+
+Like all politics, the issue of abortion has suffered from the mainstream media polarization described so well in Matt Taibbi’s book [Hate Inc.](https://www.amazon.com/Hate-Inc-Todays-Despise-Another/dp/1949017257) The book's thesis is simple: hate sells. Rage is no longer just a toxic byproduct of our media; it's the new unnatural life-blood. Now most publications have morphed from forums of fruitful public discourse into profitable echo chambers.
+
+<blockquote class="twitter-tweet"><p lang="en" dir="ltr">&quot;We live in a time of incredible political division... It’s become difficult to have an argument in the traditional sense. People with differing opinions are often no longer even working from the same commonly-accepted set of facts.&quot; <a href="https://t.co/PBREDO6vgd">https://t.co/PBREDO6vgd</a></p>&mdash; Matt Taibbi (@mtaibbi) <a href="https://twitter.com/mtaibbi/status/1307351126870757381?ref_src=twsrc%5Etfw">September 19, 2020</a></blockquote>
+
+Abortion is perhaps the ultimate case study of this communication breakdown. There’s no definitive answer to the issue’s fundamental question “when does a fetus become human?”, however abortion “debate” rarely goes so far as to discuss its own fundamental crux. This couldn’t have been illustrated more perfectly in the 2020 vice-presidential debate, with Kamala Harris proudly showing support for “for a woman’s right to make a decision about her own body” while Mike Pence “couldn’t be more proud to serve as vice president to a president who stands without apology for the sanctity of human life.”
+
+{{< video https://www.youtube.com/embed/_80d95hMjC4 start="386" >}}
+
+Note that this missed connection comes with a district difference in terminology: “make a decision” vs “sanctity of life”. The abortion debate is riddled with such partisan wordplay that reflects each group’s very well-intentioned goals (women’s health vs fetal rights), but they also embody not-so-subtle digs at their opponents. It's not even possible to reference the parties by name without stirring controversy. If you're opposed to the "Pro-life" movement, as it calls itself, does that mean you are "not pro-life"? This sounds strange, and so the term "anti-abortion" is used instead, at least by detractors of the movement. By using one set of terminology you unmistakably identify your “side” and immediately either ingratiate yourself with, or aggravate, your audience. 
+
+For example this podcast in the New York Times: [“An Anti-Abortion Leader on Trump's Supreme Court Battle”](https://www.nytimes.com/2020/09/23/podcasts/the-daily/supreme-court-trump-roe-v-wade.html) (the title was later changed). A pro-life advocate couldn’t even get past the first two words of the title without feeling slant.
+
+Being a data scientist, I decided to investigate usage of this slanted terminology in a more quantitative way. Knowing that certain terms like “right to life” or “reproductive rights” are almost exclusively partisan and rarely context-dependent, I decided to compile a list of such terms and do a mass search for them in thousands of recent abortion-related news articles (2732 to be exact). By assigning each slanted term a certain weight ("right-to-choose" slants pro-choice, "sanctity of life" slants pro-life) and counting them up, we can uncover which publications lean which way and how strongly. I made the results into an interactive plot below, where you can compare slant across publications and individual articles. You can also customize how terms are weighted based on your personal perception. If you have ideas for other partisan terms, post them in the comments below and I’ll try to add them to the visualization. While this setup is certainly simple[^2], it nonetheless provides a reasonable high-level picture of the bias extant in journalism today.
+
+
+::: {.callout-note}
+The interactive chart for this post is no longer online.
+:::
+
+Few publications are balanced, and some of the most mainstream papers are very heavy on pro-choice rhetoric. For example, only 25% of articles from the New York Times used a net right-of-center word choice. The Washington Post was much more balanced, and the Bismarck Tribune (from pro-life North Dakota) was extremely right-leaning in its relatively small sample of articles (click on the "Scatter Plot" option to see individual articles). 
+
+While partisan writing might function as a call-to-arms for ideological battle, "ideological battle" is an oxymoronic term. The rational brain is suppressed in confrontation, making it almost [physically impossible to change a person's mind if they sense an attack](https://hbr.org/2015/12/calming-your-brain-during-conflict). The “winner” of such a "battle" is just the one with that last word, not the one who spread his or her message successfully. Is it better to incrementally rally the troops to the polls, or to flip the vast mother-lode of votes in the opposition?
+
+Take the mantra “my body, my choice”. It’s easy to chant and rings proudly of a struggle for individual freedom over the implied oppressive patriarchy. And it misses the point. “It’s not a choice, it’s a child” is the memorized pro-life rebuttal. The pro-life movement is not a cabal of men in Colonel Sanders attire meeting in secret cigar lounges to strategize the next move in white male world dominance. While the religious and traditional culture that is correlated with a pro-life stance is sometimes frustratingly sexist, it’s a causation fallacy to conclude such sexism is fundamental to being pro-life. According to the same [Gallup Poll](https://news.gallup.com/poll/1576/abortion.aspx), 41% of women, 24% of Democrats, and 34% of those who “seldom or never” attend religious services self-describe as “pro-life”--substantial minorities. 
+
+But above all, attempts to “prove” that the pro-life movement is hatefully misogynistic are worse than useless: they are inflammatory. Ditto for the pro-life movement’s penchant for portraying pro-choicers as murderous eugenicists[^3] or irresponsible sluts. Humans generally believe themselves to be good people and hold their beliefs for what they perceive as good reasons. Declaring either side (tens of millions of Americans) to be stupid and evil is simplistic and displays a gross lack of empathy, a fundamental quality needed for effective debate and negotiation according to [master negotiator Chris Voss.](https://www.masterclass.com/articles/how-to-use-tactical-empathy-to-negotiate) Conversion requires deep trust in the converter; it’s the only way to bypass the deeply instinctual fight-or-flight response that is normal when one’s basic ideals are challenged.  
+
+Not every abortion advocate is a screaming nihilist femmenismo with 6-inch gauge earrings (though alt-right Twitter is fond of portraying them as such). And they are not “anti-life” but pro-life with a focus on women’s health. The outcomes of abortion can be enormously beneficial both for women[^4] and their families (by avoiding the obvious physical, emotional, and economic trauma that go with both childbirth) and [society at large](https://freakonomics.com/podcast/abortion/). The cost is ending the existence of a pre-sentient being. Or at least _usually_ pre-sentient.
+
+Ultimately, the moral reasonableness of abortion goes up closer to conception, a fact that pro-lifers won't admit. And the reasonableness of abortion goes down the closer to birth, a fact pro-choicers won't admit. This idea of incrementalism was fairly, though crudely, expressed by Josh Zepps on the Joe Rogan podcast:
+
+{{< video https://www.youtube.com/embed/F84l0qDi-wQ start="271" >}}
+
+> [abortion has] become so polarized in the United States that both positions are bullshit, and people on both sides know that both positions are bullshit. It’s bullshit to say that it is "just a women’s health issue and has no ethical implications whatsoever" even when it’s, as you say, about cutting a woman open at nine months and stabbing the embryo in the head[^5]. It’s also bullshit to say that the instant an egg is fertilized, that is a person that should have all of the rights to life that an adult should have and that it’s murder kill a blastocyst that’s smaller than the size of the head of a pin. Both positions are stupid. This is an incremental situation.
+
+![Chart: https://content.gallup.com/origin/gallupinc/GallupSpaces/Production/Cms/POLL/b2mm7nepm0ebj1pxkar6xa.png](https://content.gallup.com/origin/gallupinc/GallupSpaces/Production/Cms/POLL/b2mm7nepm0ebj1pxkar6xa.png){fig-alt="timeofabortion"}
+
+Polls show that nearly [60% of Americans are fine with first-trimester abortions](https://news.gallup.com/poll/235469/trimesters-key-abortion-views.aspx), even though only 46% say they are pro-life. Conversely, only 13% of respondents thought that abortion should be legal in the last trimester. Intuitively, this makes sense: early on the fetus is tiny, doesn’t look that human, and most importantly, can’t feel pain until about 24 weeks gestation. It's easy to see why pro-life rhetoric often revolves around late-term abortions, a favorite tack of Trump himself.
+
+<blockquote class="twitter-tweet"><p lang="en" dir="ltr">Biden and Democrats just clarified the fact that they are fully in favor of (very) LATE TERM ABORTION, right up until the time of birth, and beyond - which would be execution. Biden even endorsed the Governor of Virginia, who stated this clearly for all to hear. GET OUT &amp; VOTE!!!</p>&mdash; Donald J. Trump (@realDonaldTrump) <a href="https://twitter.com/realDonaldTrump/status/1313445293912920064?ref_src=twsrc%5Etfw">October 6, 2020</a></blockquote>
+
+While only a small minority (around 1%) of abortions are later term (post 21 weeks gestation) and the practice is restricted in many states, abortions are indeed federally legal up to the moment of birth for any reason (a system much less restrictive than that of [most European countries](https://en.wikipedia.org/wiki/Abortion_in_the_United_States_by_state#Current_legal_status_nationwide)). Additionally, the vast majority of these later-term abortions are [not for health reasons of the mother or fetus](https://onlinelibrary.wiley.com/doi/10.1363/4521013). While women seeking late-term abortions usually have understandable motives for not getting one sooner (such as lack of access, lack of money and insurance, or recent domestic abuse) this does not erase the fact that a life is being ended that is alarmingly human. Interviewed in a [Science Vs](https://youtu.be/a6BEDSohBoY?t=1127) podcast, one abortion doctor described the process of "dilation and extraction" (known as "partial-birth abortion" in pro-life lingo) in gory detail, and that "those [posters that anti-abortion groups hold around abortion clinics [link possibly NSFW]](https://www.google.com/search?q=dilation+and+extraction+procedure&sxsrf=ALeKk01J0EvU2SLMT-wZAbtyIKHz4PQkCQ:1603732178529&source=lnms&tbm=isch&sa=X&ved=2ahUKEwj3gcP239LsAhUjNOwKHdjCCEUQ_AUoAXoECA4QAw&biw=1440&bih=797), those photos in them can actually be pretty accurate." Is it really so crazy to be very uneasy with this? When is it right to inflict pain that you cannot feel, to stop a heart that is not yours, on an obviously human form? Is a big quality-of-life improvement a good enough reason?
+
+For example, families that have children with disabilities can have an increased risk of [divorce](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4624231/) and increased [financial struggle](https://researchers.mq.edu.au/en/publications/how-much-does-intellectual-disability-really-cost-first-estimates), and disabled children also put a huge financial load on their communities for special education programs and services. From an economic and quality of life perspective, it's a no-brainer to "terminate" this burden. Now, most pro-choice folks agree “termination” _after_ birth is not morally acceptable at all, but pro-lifers justifiably see the two cases as the same thing. After all, the only difference is a few inches out of the birth canal.
+
+Given the intense moral quandary, is it really beneficial to the pro-choice movement (or even morally sound in general) to die on the hill of federally unrestricted late-term abortion? Conversely, should pro-lifers be willing to die on the hill of limiting access to early-term abortion? While many hold religious beliefs that life is sacred from conception, even if it is just a few cells, is that a reasonable belief to impose on society at large? Could early-term abortions be closer to “a sin that’s legal” like contraception[^6]?
+
+These are the questions that should be discussed instead of simply claiming moral high-ground _a priori_ and then shaming our opponents for not doing so also. The resulting lack of trust has left us ramming legislation down each other’s throats to the beat of partisan power cycles, always pushing for as much as possible so that as much as possible remains after the other side gets its shot at claw-backs. 
+
+Remember, Galileo, “the father of modern science”, wasn’t imprisoned for simply advocating that the earth revolves around the sun, which was counter to Catholic teaching at the time. It was because the book he wrote on the subject [used slanted language that offended the Pope](https://en.wikipedia.org/wiki/Galileo_affair), who quickly banned the book and put Galileo under house arrest. Only 400 years later did the Church finally admit fault. How much sooner could this have been resolved had Galileo been more tactful, even though he was right?
+
+Likewise, if we drop contentious rhetoric and meme warfare from our abortion debate and adopt an atmosphere of trust via ["steel man" argumentation](https://en.wiktionary.org/wiki/steelman), perhaps we could soon be in a state similar to Western Europe...where people aren't screaming at each other about abortion nearly as much.
+
+[^1]: Even using the term “pro-life” (instead of “anti-abortion”) can be seen as political and triggering. We’ll get to this in detail.
+
+[^2]: Data Notes.  <br>
+
+    This is a visualization and is not meant to present scientific fact. As Henry Clay said, “Statistics are no substitute for judgment”. 
+    <br> 
+    <br>
+    Data was sourced from ProQuest (via the New York Public Library) by doing a keyword search on US-based news articles that contained the word “abortion” at least twice, to filter out those that reference abortion only in passing (e.g. celebrity gossip). Some publications (e.g. Fox News, HuffPost) either are not in the ProQuest database or don’t provide access to full article text, so they aren’t represented in this dataset. I merged certain closely related publications under one label, e.g. New York Times and New York Times Magazine. Partisan terms were searched for using regular expressions, so "pro life" and "Pro-life", etc. are all matched. Source code is available on <a href="https://github.com/cyniphile/abortion">Github</a>.
+    <br>
+    <br>
+    There are of course some cases where the usage of these slant terms does not reflect the author’s bias, for example when the author quotes someone else or when referenced organization names include slant terms (e.g. The National Right to Life Committee). This is a limitation of this type of analysis, but not, I think, a fatal one, as even these references still in some way present the rhetoric of the other side. 
+
+
+
+[^3]: Though it is true Planned Parenthood founder Margaret Sanger supported eugenics, the vast majority of pro-choice advocates today most-likely would be strongly opposed to such ideas.
+
+[^4]: The pro-life camp often asserts there are a myriad of health risks that come with abortion, especially mental health risks, though there is <a href="https://www.ansirh.org/research/turnaway-study?fbclid=IwAR2o4AOwj1SuBiqdpFJNY499e1z-203KRSgWB4IwE88ApeOASbWTHNUmU6E">little-to-no evidence</a> to support this.
+
+[^5]: Fact check: the procedure for late-term abortion (dilation and extraction) does not actually involve cutting the women open, but it does involve puncturing the fetal head <a href="https://www.npr.org/2006/02/21/5168163/partial-birth-abortion-separating-fact-from-spin">“using scissors or another sharp instrument”</a>. 
+
+[^6]: In fact, "Some prominent theologians, such as John Chrysostom and Thomas Sanchez, believed that post-quickening<a href="https://en.wikipedia.org/wiki/Catholic_Church_and_abortion#Early_writings"> [late term] abortion was <bold>less</bold> sinful</a> than deliberate contraception."
