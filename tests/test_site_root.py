@@ -4,7 +4,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SITE_ROOT = ROOT / "site-root"
 GOATCOUNTER = (
-    '<script data-goatcounter="https://lukeschiefelbein.goatcounter.com/count" '
+    '<script data-goatcounter="https://cynphile.goatcounter.com/count" '
     'async src="//gc.zgo.at/count.js"></script>'
 )
 

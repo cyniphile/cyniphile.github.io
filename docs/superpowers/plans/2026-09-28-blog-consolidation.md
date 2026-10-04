@@ -22,7 +22,7 @@
 - Python does all other math, in `blog/gaussian-processes/gp_data.py`, with fixed seeds from `np.random.default_rng`.
 - A stored set has 50 samples: `POOL = 50` in Python and `POOL_SIZE = 50` in JavaScript.
 - Colors: red `#c33f3f`, teal `#52c2c7`, dark teal `#1b7f86` (links in the light theme), yellow-green `#cdd63e`, text gray `#403f3f`.
-- The GoatCounter tag on each page: `<script data-goatcounter="https://lukeschiefelbein.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>`
+- The GoatCounter tag on each page: `<script data-goatcounter="https://cynphile.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>` (the owner made the GoatCounter site with the code `cynphile` on 2026-10-04; the plan first named `lukeschiefelbein`)
 - Site URL: `https://www.lukeschiefelbein.com`. The Quarto `site-url` is `https://www.lukeschiefelbein.com/blog`.
 - Each change to GitHub settings, each push, and each action on an external site needs the owner's approval first.
 - Text for the owner (README, messages, PR text) uses ASD-STE100 Simplified Technical English.
@@ -876,7 +876,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SITE_ROOT = ROOT / "site-root"
 GOATCOUNTER = (
-    '<script data-goatcounter="https://lukeschiefelbein.goatcounter.com/count" '
+    '<script data-goatcounter="https://cynphile.goatcounter.com/count" '
     'async src="//gc.zgo.at/count.js"></script>'
 )
 
@@ -947,7 +947,7 @@ The look does not change. The changes: `<html>` and charset tags, the fixed `mas
   <link rel="mask-icon" href="img/favicon_package_v0.16/safari-pinned-tab.svg" color="#5bbad5">
   <meta name="description" content="I write and code. I grew up on a cattle ranch in Minnesota and now live in New York.">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <script data-goatcounter="https://lukeschiefelbein.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+  <script data-goatcounter="https://cynphile.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Lato:wght@900&display=swap" rel="stylesheet">
   <link rel="stylesheet" type="text/css" href="css/style.css">
 </head>
@@ -1130,7 +1130,7 @@ The ASCII art is the same as in the current file.
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>404: Not Found</title>
   <link rel="icon" type="image/png" sizes="32x32" href="/img/favicon_package_v0.16/favicon-32x32.png">
-  <script data-goatcounter="https://lukeschiefelbein.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+  <script data-goatcounter="https://cynphile.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
   <style>
     body { margin: 0 16px; }
     #v-ascii .art { font-family: "Courier New", Courier, monospace; white-space: pre; overflow-x: auto; }
@@ -1363,7 +1363,7 @@ $navbar-fg: #e6e6e6;
 `blog/_includes/goatcounter.html`:
 
 ```html
-<script data-goatcounter="https://lukeschiefelbein.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+<script data-goatcounter="https://cynphile.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 ```
 
 - [ ] **Step 5: Write the three pages**
@@ -3340,7 +3340,7 @@ Ask the owner for approval before each step that changes GitHub or an external s
 
 - [ ] **Step 1: The owner makes the GoatCounter account**
 
-Ask the owner to sign up at https://www.goatcounter.com with the code `lukeschiefelbein`. If this code is not available, change `lukeschiefelbein.goatcounter.com` to the new code in `site-root/index.html`, `site-root/404.html`, `blog/_includes/goatcounter.html` and `tests/test_site_root.py`, then commit and push.
+Ask the owner to sign up at https://www.goatcounter.com. (Done 2026-10-04: the owner's code is `cynphile`; the tag in `site-root/index.html`, `site-root/404.html`, `blog/_includes/goatcounter.html`, `scripts/check_site.py` and the tests uses `cynphile.goatcounter.com`.)
 
 - [ ] **Step 2: Set the Pages source of `cyniphile.github.io` to GitHub Actions (approval)**
 

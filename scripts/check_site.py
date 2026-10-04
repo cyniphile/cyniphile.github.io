@@ -189,7 +189,7 @@ def check_comments(site_dir: Path, slugs: set[str]) -> list[str]:
     return errors
 
 
-GOATCOUNTER_TAG = 'data-goatcounter="https://lukeschiefelbein.goatcounter.com/count"'
+GOATCOUNTER_TAG = 'data-goatcounter="https://cynphile.goatcounter.com/count"'
 ONE_URL_SCRIPT = "history.replaceState"  # blog/_includes/one-url.html
 LAZY_GISCUS = 'script.dataset.loading = "lazy";'  # scripts/build.py lazy_giscus
 

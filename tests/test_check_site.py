@@ -178,7 +178,7 @@ def test_comments_show_only_on_posts(tmp_path):
 
 def test_page_scripts_one_path_first_and_lazy_comments(tmp_path):
     one_url = "<script>history.replaceState(null, '', '/x/')</script>"
-    goat = '<script data-goatcounter="https://lukeschiefelbein.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>'
+    goat = '<script data-goatcounter="https://cynphile.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>'
     giscus = 'script.src = "https://giscus.app/client.js";'
     lazy = 'script.dataset.loading = "lazy";'
     write(tmp_path / "blog/abortion/index.html", one_url + goat + giscus + lazy)
