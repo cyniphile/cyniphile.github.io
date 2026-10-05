@@ -17,9 +17,10 @@ $old-serif: 'Source Serif Pro', serif;
 $old-lato: 'Lato', sans-serif;
 
 // ---------------------------------------------------------------------------
-// Links. On the live old page the links in the text have the text color and
+// Links. On the live old page the links in the text had the text color and
 // no underline (the Primer style sheet of the old site uses color variables
-// that the old page never defines). Hover as in minima.
+// that the old page never defines). Hover as in minima. Links in the text of
+// posts and pages are dark teal (below).
 // ---------------------------------------------------------------------------
 a {
   color: inherit;
@@ -28,6 +29,18 @@ a {
 
 a:hover {
   color: #111111;
+  text-decoration: underline;
+}
+
+// Links in the text of posts and pages: the site's dark teal, so that readers can see them (the
+// owner asked for this on 2026-10-05; the old page showed them in the text color). The header,
+// footer, post list and icons keep their own colors.
+main.content :is(p, li, td, th, dd, figcaption, blockquote) a {
+  color: #1b7f86;
+}
+
+main.content :is(p, li, td, th, dd, figcaption, blockquote) a:hover {
+  color: #1b7f86;
   text-decoration: underline;
 }
 
