@@ -1,7 +1,7 @@
 # Blog consolidation: design
 
 - Date: 2026-09-28
-- Status: draft, for review
+- Status: implemented (cutover on 2026-10-04)
 - Target repo: `cyniphile.github.io` (default branch `master`)
 - Repos to archive: `blog`, `marimo-blog`
 
