@@ -241,7 +241,7 @@ def test_build_runs_all_steps_in_order(tmp_path, monkeypatch):
     assert (site / "index.html").read_text(encoding="utf-8") == "landing"
     assert (site / "blog/index.html").read_text(encoding="utf-8") == "post list"
     assert (site / "blog/feed.xml").read_text(encoding="utf-8") == "<rss/>"
-    assert (site / "blog/abortion/politics/2020/10/20/abortion.html").is_file()
+    assert (site / "blog/programming/rust/biology/2021/12/01/biology-rust.html").is_file()
 
 
 def test_build_exports_live_notebooks_that_run_at_load_and_show_code(tmp_path, monkeypatch):
